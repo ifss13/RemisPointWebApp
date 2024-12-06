@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RemisPoint</title>
+    {% load static %}
+    <!-- Agregar Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+
+
+    <style>
+        /* Cambiar el color de la navbar */
+        .navbar {
+            background-color: #fc7c44; /* Color de fondo personalizado */
+        }
+
+        /* Cambiar el color de las letras en la navbar */
+        .navbar .nav-link {
+            color: white !important; /* Texto blanco en los enlaces */
+            font-size: 1.1rem;  /* Ajusta el tamaño según lo desees */
+            font-family: 'Roboto', sans-serif;
+        }
+
+        /* Cambiar el color del logo si es necesario */
+        .navbar-brand img {
+            max-width: 150px;
+        }
+
+        /* Asegurarse de que los enlaces activos también sean blancos */
+        .navbar .nav-link.active {
+            color: white !important;
+        }
+
+        /* Cambiar el color de la barra de navegación cuando se pasa el ratón */
+        .navbar .nav-link:hover {
+            color: #f1f1f1 !important; /* Color más claro para el hover */
+        }
+
+        /* Estilo para el footer */
+        footer {
+            background-color: #333;
+            color: white;
+            padding: 10px 0;
+            position: relative;
+            bottom: 0;
+            width: 100%;
+            text-align: center;
+        }
+
+        /* Establece que el contenido de la página ocupe todo el espacio disponible */
+        .content-wrapper {
+            min-height: 100vh; /* Asegura que el contenido ocupe al menos toda la altura de la ventana */
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Asegura que el footer esté en la parte inferior */
+        .content-wrapper > .content {
+            flex: 1;
+        }
+        
+        .navbar .nav-link.btn-iniciar-sesion {
+            background-color: #6c757d; /* Color gris */
+            color: white;  /* Texto blanco */
+            border: none;  /* Elimina el borde */
+            padding: 10px 20px; /* Añadir un poco de espaciado */
+            border-radius: 5px; /* Bordes redondeados */
+        }
+
+        .navbar .nav-link.btn-iniciar-sesion:hover {
+            background-color: #5a6268; /* Gris más oscuro cuando se pasa el mouse */
+        }
+    </style>
+</head>
+<body>
+    <div class="content-wrapper">
+        <!-- Barra de navegación -->
+        <nav class="navbar navbar-expand-lg">
+            <div class="container-fluid">
+                <!-- Logo de RemisPoint con clase img-fluid para hacerlo responsivo -->
+                <a class="navbar-brand" href="#">
+                    <img src="{% static 'images/Remis-Point.png' %}" alt="RemisPoint" class="img-fluid">
+                </a>
+
+                <!-- Botón para cambiar entre vistas en dispositivos pequeños -->
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Enlaces de navegación -->
+                <div class="collapse navbar-collapse d-flex justify-content-between w-100" id="navbarNav">
+                    <ul class="navbar-nav">
+                        <!-- Enlace Inicio a la izquierda, al lado del logo -->
+                        <li class="nav-item">
+                            <a class="nav-link active" href="/">Inicio</a>
+                        </li>
+                    </ul>
+
+                    <!-- Enlaces de Registro e Iniciar sesión a la derecha -->
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item">
+                            <div class ="container">
+                                {% if user.is_authenticated %}
+                                <p>Bienvenido, {{ user.username }}!</p>
+                            </div>
+                            <div class="container">
+                                <a href="{% url 'logout' %}">
+                                    <button type="button">Cerrar sesión</button>
+                                </a>
+                                    {% else %}
+                                <a href="{% url 'login' %}"><button type="button">Iniciar Sesion</button></a>
+                                    {% endif %}
+                            </div>
+                            
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Contenido de la página -->
+        <div class="content">
+            {% block content %}
+            <!-- Aquí va el contenido específico de cada página -->
+            {% endblock %}
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            <p>&copy; 2024 RemisPoint. Todos los derechos reservados.</p>
+        </footer>
+    </div>
+
+    <!-- Agregar Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+
+
+
+

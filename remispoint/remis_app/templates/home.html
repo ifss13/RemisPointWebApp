@@ -1,0 +1,278 @@
+{% extends 'base.html' %}
+
+{% block title %}Home - RemisPoint{% endblock %}
+
+{% block content %}
+<style>
+    .home-container {
+        display: flex;
+        justify-content: space-between;
+        padding: 20px;
+    }
+
+    .left-section {
+        width: 50%;
+        padding-right: 20px;
+    }
+
+    h1 {
+        font-size: 2rem;
+        font-weight: bold;
+    }
+
+    h3 {
+        font-size: 1.5rem;
+        font-weight: normal;
+        color: #555;
+    }
+
+    .input-group {
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+    }
+
+    .input-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-size: 1rem;
+        width: 40%;  /* Para darle espacio a los botones */
+    }
+
+    .input-group input,
+    .input-group select {
+        width: 60%;
+        padding: 10px;
+        font-size: 1rem;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        background-color: #f9f9f9;  /* Para indicar que el campo no es editable */
+    }
+
+    .input-group button {
+        padding: 5px 10px;
+        font-size: 1.5rem;
+        border: none;
+        background-color: #f0f0f0;
+        color: white;
+        cursor: pointer;
+        border-radius: 5px;
+        margin-left: 10px;
+    }
+
+    .input-group button:hover {
+        background-color: #0056b3;
+    }
+
+    button {
+        padding: 10px 20px;
+        font-size: 1rem;
+        border: none;
+        background-color: #007bff;
+        color: white;
+        cursor: pointer;
+        border-radius: 5px;
+    }
+
+    button:hover {
+        background-color: #0056b3;
+    }
+
+    .right-section {
+        width: 45%;
+        background-color: #f0f0f0;
+        height: 400px;
+        border-radius: 8px;
+    }
+
+    .map {
+        width: 100%;
+        height: 100%;
+        border-radius: 15px; /* Bordes redondeados */
+    }
+
+    #valor-estimado {
+        font-family: 'Roboto', sans-serif;
+        font-size: 20px;
+        font-weight: bold;
+        color: #333;
+        margin-top: 15px;
+        padding: 10px;
+        border-radius: 5px;
+        text-align: center;
+    }
+
+</style>
+
+<div class="container home-container">
+    <div class="left-section">
+        <h1>Bienvenido a Remis Point</h1>
+        <h3>Viaja a donde quieras con nosotros</h3>
+        <br>
+        <label for="punto-partida">Punto de partida</label> 
+        <div class="input-group">
+            <input type="text" id="punto-partida" placeholder="Ingrese punto de partida" readonly disabled>
+            <button onclick="obtenerUbicacion('partida')">🏠</button>
+        </div>
+
+        <label for="entrega">Destino</label>
+        <div class="input-group">
+            
+            <input type="text" id="entrega" placeholder="Ingrese lugar de destino" readonly disabled>
+            <button onclick="obtenerUbicacion('destino')">🏠</button>
+        </div>
+        
+        {% if user.is_authenticated %}
+        <button class="btn btn-primary" onclick="verRuta()">Ver Precio Aproximado</button>
+        <button class="btn btn-secondary" onclick="limpiarMapa()">Limpiar Mapa</button>
+        {% else %}
+        <a href="{% url 'login' %}"><button type="button">Ver Precio Aproximado</button></a>
+        <button class="btn btn-secondary" onclick="limpiarMapa()">Limpiar Mapa</button>
+        {% endif %}
+        <div id="valor-estimado"></div>
+        
+    </div>
+
+    <div class="right-section">
+        <div id="map" class="map"></div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+    var map = L.map('map').setView([-27.485045, -55.1199269], 15);
+
+    // Capa de OpenStreetMap
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    var rutaAnterior;
+    var marcadorPartida, marcadorDestino;
+    var coordsPartida = null, coordsDestino = null;
+    var marcadoresColocados = 0; // Para contar cuántos marcadores se han colocado
+
+    // Función para obtener la dirección desde las coordenadas usando la API de geocodificación
+    function obtenerDireccion(lat, lon, tipo) {
+        var url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`;
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.address) {
+                    let direccion = "";
+
+                    if (data.address.road && data.address.house_number) {
+                        direccion = `${data.address.road} ${data.address.house_number}`;
+                    } else if (data.address.road) {
+                        direccion = data.address.road;
+                    } else if (data.address.house_number) {
+                        direccion = data.address.house_number;
+                    }
+
+                    if (tipo === 'partida') {
+                        document.getElementById('punto-partida').value = direccion;
+                    } else if (tipo === 'destino') {
+                        document.getElementById('entrega').value = direccion;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error al obtener la dirección:', error);
+            });
+    }
+
+    // Función para crear un marcador con texto
+    function crearMarcador(lat, lon, esDestino = false) {
+        var marcador = L.marker([lat, lon]).addTo(map);
+        marcador.bindPopup(esDestino ? 'Destino' : 'Punto de partida').openPopup();
+        return marcador;
+    }
+
+    // Escuchar clic en el mapa para colocar los marcadores
+    map.on('click', function(e) {
+        var lat = e.latlng.lat;
+        var lon = e.latlng.lng;
+
+        // Colocar marcador de partida solo si no se han colocado dos
+        if (marcadoresColocados < 2) {
+            if (marcadoresColocados === 0) {
+                marcadorPartida = crearMarcador(lat, lon, false);
+                coordsPartida = { lat: lat, lon: lon };
+                obtenerDireccion(lat, lon, 'partida');
+            } else if (marcadoresColocados === 1) {
+                marcadorDestino = crearMarcador(lat, lon, true);
+                coordsDestino = { lat: lat, lon: lon };
+                obtenerDireccion(lat, lon, 'destino');
+            }
+
+            // Incrementar el contador de marcadores
+            marcadoresColocados++;
+        }
+    });
+
+    // Función para ver la ruta y calcular el precio estimado
+    function verRuta() {
+        if (!coordsPartida || !coordsDestino) {
+            alert('Por favor, coloque ambos marcadores en el mapa.');
+            return;
+        }
+
+        var coordsPartidaAPI = [coordsPartida.lon, coordsPartida.lat]; // [lon, lat]
+        var coordsDestinoAPI = [coordsDestino.lon, coordsDestino.lat]; // [lon, lat]
+
+        var url = `https://api.openrouteservice.org/v2/directions/driving-car?api_key=5b3ce3597851110001cf6248bbaa88fc959c42db9efc751597c03a47&start=${coordsPartidaAPI[0]},${coordsPartidaAPI[1]}&end=${coordsDestinoAPI[0]},${coordsDestinoAPI[1]}`;
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data.features && data.features.length > 0) {
+                    var route = data.features[0].geometry.coordinates;
+                    var latLngs = route.map(function(coord) {
+                        return [coord[1], coord[0]];  // Convertir de [lon, lat] a [lat, lon]
+                    });
+
+                    if (rutaAnterior) {
+                        map.removeLayer(rutaAnterior);
+                    }
+
+                    rutaAnterior = L.polyline(latLngs, { color: 'blue' }).addTo(map);
+                    map.fitBounds(rutaAnterior.getBounds());
+
+                    var distancia = data.features[0].properties.segments[0].distance;
+                    var valor = distancia <= 1500 ? 2000 : 2000 + Math.ceil((distancia - 1500) / 1000) * 500;
+                    document.getElementById('valor-estimado').innerText = `Precio estimado: $${valor}`;
+                }
+            })
+            .catch(error => {
+                console.error('Error al obtener la ruta:', error);
+            });
+    }
+
+    // Función para limpiar el mapa
+    function limpiarMapa() {
+        map.eachLayer(function(layer) {
+            if (layer instanceof L.Marker || layer instanceof L.Polyline) {
+                map.removeLayer(layer);
+            }
+        });
+        coordsPartida = null;
+        coordsDestino = null;
+        marcadoresColocados = 0;
+        document.getElementById('punto-partida').value = "";
+        document.getElementById('entrega').value = "";
+        document.getElementById('valor-estimado').innerText = "";
+    }
+
+    // Obtener la ubicación inicial si es posible
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+            var lat = position.coords.latitude;
+            var lon = position.coords.longitude;
+            map.setView([lat, lon], 15);
+        });
+    }
+</script>
+{% endblock %}

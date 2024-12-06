@@ -1,0 +1,12 @@
+#map {
+    height: 400px;
+}
+
+.leaflet-container {
+    background: #f0f0f0;
+}
+
+.leaflet-popup {
+    background-color: white;
+    border: 2px solid gray;
+}

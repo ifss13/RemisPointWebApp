@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block title %}Registro - RemisPoint{% endblock %}
+
+{% block content %}
+    <div class="container mt-5 mb-5">
+        <h2 class="text-center mb-4">Registro de Cliente</h2>
+
+        <!-- Mostrar errores si existen -->
+        {% if error %}
+            <div class="alert alert-danger" role="alert">
+                {{ error }}
+            </div>
+        {% endif %}
+
+        <!-- Formulario de registro -->
+        <form method="POST" action="/registro/">
+            {% csrf_token %}
+            
+            <!-- Nombre -->
+            <div class="mb-3">
+                <label for="nombre" class="form-label">Nombre</label>
+                <input type="text" class="form-control" id="nombre" name="nombre" required>
+            </div>
+
+            <!-- Teléfono -->
+            <div class="mb-3">
+                <label for="telefono" class="form-label">Teléfono</label>
+                <input type="text" class="form-control" id="telefono" name="telefono" required>
+            </div>
+
+            <!-- Dirección -->
+            <div class="mb-3">
+                <label for="direccion" class="form-label">Dirección</label>
+                <input type="text" class="form-control" id="direccion" name="direccion" required>
+            </div>
+
+            <!-- Correo Electrónico -->
+            <div class="mb-3">
+                <label for="correo" class="form-label">Correo electrónico</label>
+                <input type="email" class="form-control" id="correo" name="correo" required>
+                <div id="emailHelp" class="form-text">Nunca compartiremos tu correo con nadie más.</div>
+            </div>
+
+            <!-- Contraseña -->
+            <div class="mb-3">
+                <label for="password" class="form-label">Contraseña</label>
+                <input type="password" class="form-control" id="password" name="password" required>
+            </div>
+
+            <!-- Confirmar Contraseña -->
+            <div class="mb-3">
+                <label for="password2" class="form-label">Confirmar Contraseña</label>
+                <input type="password" class="form-control" id="password2" name="password2" required>
+                <div id="passwordHelp" class="form-text">Debe coincidir con la contraseña anterior.</div>
+            </div>
+
+            <!-- Localidad -->
+            <div class="mb-3">
+                <label for="localidad" class="form-label">Localidad</label>
+                <select class="form-select" id="localidad" name="localidad" required>
+                    {% for localidad in localidades %}
+                        <option value="{{ localidad.id_localidad }}">{{ localidad.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Botón de Registro -->
+            <button type="submit" class="btn btn-primary w-100">Registrarse</button>
+        </form>
+    </div>
+{% endblock %}
+
