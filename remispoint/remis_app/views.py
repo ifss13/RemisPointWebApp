@@ -11,6 +11,10 @@ from django.http import JsonResponse
 import openrouteservice
 from django.conf import settings
 import requests
+from .models import PedidosCliente
+import json
+from remis_app.models import PedidosCliente, ChoferAuto, Cliente, Viaje
+from django.shortcuts import get_object_or_404
 
 ORS_API_KEY = '5b3ce3597851110001cf6248bbaa88fc959c42db9efc751597c03a47'
 
@@ -160,3 +164,109 @@ def geocodificar_inversa(request):
             return JsonResponse({'error': 'Error al comunicarse con OpenRouteService'}, status=500)
 
     return JsonResponse({'error': 'Coordenadas no válidas'}, status=400)
+
+@login_required
+def pedidos(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)  # Leer los datos enviados por el frontend
+            dir_salida = data.get("dir_salida")
+            dir_destino = data.get("dir_destino")
+
+            if not dir_salida or not dir_destino:
+                return JsonResponse({"status": "error", "message": "Por favor completa ambos campos."}, status=400)
+
+            # Obtener el cliente relacionado con el usuario actual
+            cliente = get_object_or_404(Cliente, correo=request.user.email)
+
+            # Crear el registro en la tabla PedidoCliente
+            PedidosCliente.objects.create(
+                id_cliente=cliente,
+                dir_salida=dir_salida,
+                dir_destino=dir_destino,
+                estado_pedido="Pendiente"
+            )
+            return JsonResponse({"status": "success", "message": "Pedido registrado correctamente."})
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
+    # Manejo de solicitudes GET
+    elif request.method == "GET":
+        return render(request, "pedidos.html")  # Renderiza la plantilla para el formulario de pedidos
+
+    # Otros métodos no permitidos
+    return JsonResponse({"status": "error", "message": "Método no permitido."}, status=405)
+
+import datetime
+from django.utils import timezone
+
+def asignar_pedidos(request):
+    if request.method == "GET":
+        # Obtener pedidos pendientes
+        pedidos_pendientes = PedidosCliente.objects.filter(estado_pedido="Pendiente")
+        # Obtener choferes disponibles
+        choferes_disponibles = ChoferAuto.objects.filter(disponibilidad=True)
+
+        # Devolver los pedidos y choferes disponibles al template
+        return render(request, "base_pedidos.html", {
+            "pedidos": pedidos_pendientes,
+            "choferes": choferes_disponibles
+        })
+
+    elif request.method == "POST":
+        try:
+            # Imprimir el cuerpo de la solicitud para depurar
+            print(request.body)
+
+            # Intentar decodificar el JSON
+            data = json.loads(request.body.decode('utf-8'))  # Asegurarse de que se decodifique correctamente
+
+            # Verificar que los datos de id_pedido e id_chofer están presentes
+            id_pedido = data.get("id_pedido")
+            id_chofer = data.get("id_chofer")
+
+            if not id_pedido or not id_chofer:
+                return JsonResponse({"status": "error", "message": "Datos incompletos."}, status=400)
+
+            # Asegurarse de que id_pedido e id_chofer sean enteros
+            try:
+                id_pedido = int(id_pedido)
+                id_chofer = int(id_chofer)
+            except ValueError:
+                return JsonResponse({"status": "error", "message": "Los datos deben ser números enteros."}, status=400)
+
+            # Obtener el pedido y el chofer con base en sus IDs
+            pedido = get_object_or_404(PedidosCliente, id_pedido=id_pedido)
+            chofer_auto = get_object_or_404(ChoferAuto, id_chofer=id_chofer, disponibilidad=True)
+
+            # Crear un nuevo registro en la tabla Viajes
+            viaje = Viaje.objects.create(
+                id_cliente=pedido.id_cliente,
+                dir_salida=pedido.dir_salida,
+                dir_destino=pedido.dir_destino,
+                hora=timezone.now().time(),  # Hora actual con zona horaria
+                fecha=timezone.now().date(),  # Fecha actual con zona horaria
+                id_precio=1,  # Valor por defecto
+                cod_tipo_pago=1,  # Valor por defecto
+                id_remiseria=1,  # Valor por defecto
+                inicio=timezone.now().time(),  # Hora actual con zona horaria
+                fin=timezone.now().time(),  # Hora actual por ahora
+                patente=chofer_auto.patente,  # Patente del chofer
+                estado="En viaje"  # Estado inicial
+            )
+
+            # Actualizar el estado del pedido y la disponibilidad del chofer
+            pedido.estado_pedido = "Asignado"
+            pedido.save()
+            chofer_auto.disponibilidad = False  # Marcamos al chofer como no disponible
+            chofer_auto.save()
+
+            return JsonResponse({"status": "success", "message": "Viaje asignado correctamente."})
+
+        except json.JSONDecodeError:
+            # Si no se puede decodificar el JSON, responder con un mensaje de error
+            return JsonResponse({"status": "error", "message": "Error al decodificar el JSON. Verifique que los datos estén en formato JSON válido."}, status=400)
+
+        except Exception as e:
+            # Capturar cualquier otro error
+            return JsonResponse({"status": "error", "message": str(e)}, status=500)

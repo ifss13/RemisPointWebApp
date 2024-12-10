@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5">
+    <h2>Asignar Pedidos</h2>
+    <div class="row">
+        <div class="col-md-6">
+            <h4>Pedidos Pendientes</h4>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Cliente</th>
+                        <th>Salida</th>
+                        <th>Destino</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pedido in pedidos %}
+                    <tr>
+                        <td>{{ pedido.id_pedido }}</td>
+                        <td>{{ pedido.id_cliente.nombre }}</td>
+                        <td>{{ pedido.dir_salida }}</td>
+                        <td>{{ pedido.dir_destino }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="col-md-6">
+            <h4>Choferes Disponibles</h4>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Auto</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for chofer in choferes %}
+                    <tr>
+                        <td>{{ chofer.id_chofer }}</td>
+                        <td>{{ chofer.id_chofer.nombre }}</td>
+                        <td>{{ chofer.patente }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <form method="POST">
+        {% csrf_token %}
+        
+        <label for="pedido">Seleccionar Pedido:</label>
+        <select name="id_pedido" id="pedido">
+            {% for pedido in pedidos %}
+                <option value="{{ pedido.id_pedido }}">
+                    {{ pedido.id_cliente.nombre }} - {{ pedido.dir_salida }} -> {{ pedido.dir_destino }}
+                </option>
+            {% endfor %}
+        </select>
+    
+        <label for="chofer">Seleccionar Chofer:</label>
+        <select name="id_chofer" id="chofer">
+            {% for chofer_auto in choferes %}
+                <option value="{{ chofer_auto.id_chofer.id }}">
+                    {{ chofer_auto.id_chofer.nombre }} {{ chofer_auto.id_chofer.apellido }}
+                </option>
+            {% endfor %}
+        </select>
+    
+        <button type="submit">Asignar</button>
+    </form>
+
+<script>
+    document.getElementById("asignarPedidoForm").addEventListener("submit", function(event) {
+        event.preventDefault();
+
+        const idPedido = document.getElementById("idPedido").value;
+        const idChofer = document.getElementById("idChofer").value;
+
+        fetch("{% url 'asignar_pedidos' %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: JSON.stringify({ id_pedido: idPedido, id_chofer: idChofer })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === "success") {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert(`Error: ${data.message}`);
+            }
+        })
+        .catch(error => {
+            console.error("Error:", error);
+            alert("Ocurrió un error al asignar el pedido.");
+        });
+    });
+</script>
+{% endblock %}

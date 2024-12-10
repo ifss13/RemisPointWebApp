@@ -103,7 +103,7 @@
                         <li class="nav-item">
                             <div class ="container">
                                 {% if user.is_authenticated %}
-                                <p>Bienvenido, {{ user.username }}!</p>
+                                <p>Bienvenido/a, {{ user.first_name }}!</p>
                             </div>
                             <div class="container">
                                 <a href="{% url 'logout' %}">

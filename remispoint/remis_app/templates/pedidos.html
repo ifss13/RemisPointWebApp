@@ -1,0 +1,248 @@
+{% extends 'base.html' %}
+
+{% block title %}Pedidos - RemisPoint{% endblock %}
+
+{% block content %}
+<style>
+    .home-container {
+        display: flex;
+        justify-content: space-between;
+        padding: 20px;
+    }
+
+    .left-section {
+        width: 50%;
+        padding-right: 20px;
+    }
+
+    h1 {
+        font-size: 2rem;
+        font-weight: bold;
+    }
+
+    h3 {
+        font-size: 1.5rem;
+        font-weight: normal;
+        color: #555;
+    }
+
+    .input-group {
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+    }
+
+    .input-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-size: 1rem;
+        width: 40%;
+    }
+
+    .input-group input {
+        width: 60%;
+        padding: 10px;
+        font-size: 1rem;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+    }
+
+    button {
+        padding: 10px 20px;
+        font-size: 1rem;
+        border: none;
+        background-color: #007bff;
+        color: white;
+        cursor: pointer;
+        border-radius: 5px;
+    }
+
+    button:hover {
+        background-color: #0056b3;
+    }
+
+    .right-section {
+        width: 45%;
+        background-color: #f0f0f0;
+        height: 400px;
+        border-radius: 8px;
+    }
+
+    .map {
+        width: 100%;
+        height: 100%;
+        border-radius: 15px;
+    }
+
+    #registro-exitoso {
+        font-family: 'Roboto', sans-serif;
+        font-size: 20px;
+        font-weight: bold;
+        color: green;
+        margin-top: 15px;
+        padding: 10px;
+        border-radius: 5px;
+        text-align: center;
+    }
+
+    #error-registro {
+        font-family: 'Roboto', sans-serif;
+        font-size: 20px;
+        font-weight: bold;
+        color: red;
+        margin-top: 15px;
+        padding: 10px;
+        border-radius: 5px;
+        text-align: center;
+    }
+
+</style>
+
+<div class="container home-container">
+    <div class="left-section">
+        <h1>Registrar Pedido</h1>
+        <h3>Selecciona los puntos en el mapa</h3>
+        <br>
+        <label for="punto-partida">Punto de partida</label>
+        <div class="input-group">
+            <input type="text" id="punto-partida" placeholder="Ingrese punto de partida" readonly disabled>
+        </div>
+
+        <label for="entrega">Destino</label>
+        <div class="input-group">
+            <input type="text" id="entrega" placeholder="Ingrese lugar de destino" readonly disabled>
+        </div>
+
+        <button class="btn btn-primary" onclick="registrarPedido()">Registrar Pedido</button>
+        <button class="btn btn-secondary" onclick="limpiarMapa()">Limpiar Mapa</button>
+
+        <div id="registro-exitoso" style="display: none;">¡Pedido registrado exitosamente!</div>
+        <div id="error-registro" style="display: none;">Error al registrar el pedido. Intente nuevamente.</div>
+    </div>
+
+    <div class="right-section">
+        <div id="map" class="map"></div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+    var map = L.map('map').setView([-27.485045, -55.1199269], 15);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    var marcadorPartida, marcadorDestino;
+    var coordsPartida = null, coordsDestino = null;
+    var marcadoresColocados = 0;
+
+    function obtenerDireccion(lat, lon, tipo) {
+        var url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`;
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.address) {
+                    let direccion = "";
+
+                    if (data.address.road && data.address.house_number) {
+                        direccion = `${data.address.road} ${data.address.house_number}`;
+                    } else if (data.address.road) {
+                        direccion = data.address.road;
+                    } else if (data.address.house_number) {
+                        direccion = data.address.house_number;
+                    }
+
+                    if (tipo === 'partida') {
+                        document.getElementById('punto-partida').value = direccion;
+                    } else if (tipo === 'destino') {
+                        document.getElementById('entrega').value = direccion;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error al obtener la dirección:', error);
+            });
+    }
+
+    function crearMarcador(lat, lon, esDestino = false) {
+        var marcador = L.marker([lat, lon]).addTo(map);
+        marcador.bindPopup(esDestino ? 'Destino' : 'Punto de partida').openPopup();
+        return marcador;
+    }
+
+    map.on('click', function(e) {
+        var lat = e.latlng.lat;
+        var lon = e.latlng.lng;
+
+        if (marcadoresColocados < 2) {
+            if (marcadoresColocados === 0) {
+                marcadorPartida = crearMarcador(lat, lon, false);
+                coordsPartida = { lat: lat, lon: lon };
+                obtenerDireccion(lat, lon, 'partida');
+            } else if (marcadoresColocados === 1) {
+                marcadorDestino = crearMarcador(lat, lon, true);
+                coordsDestino = { lat: lat, lon: lon };
+                obtenerDireccion(lat, lon, 'destino');
+            }
+            marcadoresColocados++;
+        }
+    });
+
+    function limpiarMapa() {
+        map.eachLayer(function(layer) {
+            if (layer instanceof L.Marker) {
+                map.removeLayer(layer);
+            }
+        });
+        coordsPartida = null;
+        coordsDestino = null;
+        marcadoresColocados = 0;
+        document.getElementById('punto-partida').value = "";
+        document.getElementById('entrega').value = "";
+        document.getElementById('registro-exitoso').style.display = "none";
+        document.getElementById('error-registro').style.display = "none";
+    }
+
+    function registrarPedido() {
+        const dirSalida = document.getElementById("punto-partida").value;
+        const dirDestino = document.getElementById("entrega").value;
+
+        if (!dirSalida || !dirDestino) {
+            alert("Por favor, selecciona tanto el punto de partida como el destino en el mapa.");
+            return;
+        }
+
+        fetch("{% url 'pedidos' %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: JSON.stringify({
+                dir_salida: dirSalida,
+                dir_destino: dirDestino
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === "success") {
+                alert(data.message);
+            } else {
+                alert(`Error: ${data.message}`);
+            }
+        })
+        .catch(error => {
+            console.error("Error:", error);
+            alert("Ocurrió un error al registrar el pedido. Intente nuevamente.");
+        });
+    }
+
+
+</script>
+{% endblock %}
+

@@ -11,4 +11,6 @@ urlpatterns = [
     path('calcular_ruta/', views.calcular_ruta, name='calcular_ruta'),
     path('verificar_sesion/', views.verificar_sesion, name='verificar_sesion'),
     path('geocodificar-inversa/', views.geocodificar_inversa, name='geocodificar_inversa'),
+    path("pedidos/", views.pedidos, name="pedidos"),
+    path('asignar-pedidos/', views.asignar_pedidos, name='asignar_pedidos'),  # Ruta para la página de asignación,
 ]
