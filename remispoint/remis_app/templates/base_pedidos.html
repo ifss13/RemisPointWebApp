@@ -3,6 +3,7 @@
 <div class="container mt-5">
     <h2>Asignar Pedidos</h2>
     <div class="row">
+        <!-- Pedidos Pendientes -->
         <div class="col-md-6">
             <h4>Pedidos Pendientes</h4>
             <table class="table table-striped">
@@ -26,6 +27,8 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- Choferes Disponibles -->
         <div class="col-md-6">
             <h4>Choferes Disponibles</h4>
             <table class="table table-striped">
@@ -39,8 +42,8 @@
                 <tbody>
                     {% for chofer in choferes %}
                     <tr>
-                        <td>{{ chofer.id_chofer }}</td>
-                        <td>{{ chofer.id_chofer.nombre }}</td>
+                        <td>{{ chofer.id_chofer.id_chofer }}</td>
+                        <td>{{ chofer.id_chofer.nombre }} {{ chofer.id_chofer.apellido }}</td>
                         <td>{{ chofer.patente }}</td>
                     </tr>
                     {% endfor %}
@@ -48,12 +51,13 @@
             </table>
         </div>
     </div>
-
-    <form method="POST">
+    <br>
+    <br>
+    <!-- Formulario para asignar pedido a chofer -->
+    <form id="asignarPedidoForm" method="POST" action="{% url 'asignar_pedidos' %}">
         {% csrf_token %}
-        
         <label for="pedido">Seleccionar Pedido:</label>
-        <select name="id_pedido" id="pedido">
+        <select name="id_pedido" id="idPedido">
             {% for pedido in pedidos %}
                 <option value="{{ pedido.id_pedido }}">
                     {{ pedido.id_cliente.nombre }} - {{ pedido.dir_salida }} -> {{ pedido.dir_destino }}
@@ -62,45 +66,75 @@
         </select>
     
         <label for="chofer">Seleccionar Chofer:</label>
-        <select name="id_chofer" id="chofer">
-            {% for chofer_auto in choferes %}
-                <option value="{{ chofer_auto.id_chofer.id }}">
-                    {{ chofer_auto.id_chofer.nombre }} {{ chofer_auto.id_chofer.apellido }}
+        <select name="id_chofer" id="id_chofer">
+            {% for chofer in choferes %}
+                <option value="{{ chofer.id_chofer.id_chofer }}">
+                    {{ chofer.id_chofer.nombre }} - {{ chofer.patente }}
                 </option>
             {% endfor %}
         </select>
     
         <button type="submit">Asignar</button>
     </form>
+    
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Cliente</th>
+                <th>Chofer</th>
+                <th>Salida</th>
+                <th>Destino</th>
+                <th>Estado</th>
+                <th>Acción</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for viaje in viajes_en_viaje %}
+            <tr>
+                <td>{{ viaje.id_viaje }}</td>
+                <td>{{ viaje.id_cliente.nombre }}</td>
+                <td>{{ viaje.patente }}</td>  <!-- Aquí muestras la patente del auto -->
+                <td>{{ viaje.dir_salida }}</td>
+                <td>{{ viaje.dir_destino }}</td>
+                <td>{{ viaje.estado }}</td>
+                <td>
+                    {% if viaje.estado == "En viaje" %}
+                        <button onclick="finalizarViaje('{{ viaje.id_viaje }}')">Finalizar</button>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    
+</div>
 
 <script>
-    document.getElementById("asignarPedidoForm").addEventListener("submit", function(event) {
-        event.preventDefault();
-
-        const idPedido = document.getElementById("idPedido").value;
-        const idChofer = document.getElementById("idChofer").value;
-
-        fetch("{% url 'asignar_pedidos' %}", {
-            method: "POST",
+    // Función para finalizar el viaje
+    function finalizarViaje(idViaje) {
+        fetch(`/finalizar-viaje/${idViaje}/`, {
+            method: 'POST',
             headers: {
                 "Content-Type": "application/json",
                 "X-CSRFToken": "{{ csrf_token }}"
             },
-            body: JSON.stringify({ id_pedido: idPedido, id_chofer: idChofer })
         })
         .then(response => response.json())
         .then(data => {
             if (data.status === "success") {
                 alert(data.message);
-                location.reload();
+                location.reload(); // Recarga la página para ver los cambios
             } else {
                 alert(`Error: ${data.message}`);
             }
         })
         .catch(error => {
             console.error("Error:", error);
-            alert("Ocurrió un error al asignar el pedido.");
+            alert("Ocurrió un error al finalizar el viaje.");
         });
-    });
+    }
 </script>
 {% endblock %}

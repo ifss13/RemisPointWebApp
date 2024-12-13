@@ -202,71 +202,88 @@ from django.utils import timezone
 
 def asignar_pedidos(request):
     if request.method == "GET":
-        # Obtener pedidos pendientes
         pedidos_pendientes = PedidosCliente.objects.filter(estado_pedido="Pendiente")
-        # Obtener choferes disponibles
         choferes_disponibles = ChoferAuto.objects.filter(disponibilidad=True)
-
-        # Devolver los pedidos y choferes disponibles al template
+        viajes_en_viaje = Viaje.objects.filter(estado="En viaje")
         return render(request, "base_pedidos.html", {
             "pedidos": pedidos_pendientes,
-            "choferes": choferes_disponibles
+            "choferes": choferes_disponibles,
+            "viajes_en_viaje": viajes_en_viaje
         })
 
     elif request.method == "POST":
         try:
-            # Imprimir el cuerpo de la solicitud para depurar
-            print(request.body)
-
-            # Intentar decodificar el JSON
-            data = json.loads(request.body.decode('utf-8'))  # Asegurarse de que se decodifique correctamente
-
-            # Verificar que los datos de id_pedido e id_chofer están presentes
-            id_pedido = data.get("id_pedido")
-            id_chofer = data.get("id_chofer")
+            id_pedido = request.POST.get("id_pedido")
+            id_chofer = request.POST.get("id_chofer")
 
             if not id_pedido or not id_chofer:
                 return JsonResponse({"status": "error", "message": "Datos incompletos."}, status=400)
 
-            # Asegurarse de que id_pedido e id_chofer sean enteros
-            try:
-                id_pedido = int(id_pedido)
-                id_chofer = int(id_chofer)
-            except ValueError:
-                return JsonResponse({"status": "error", "message": "Los datos deben ser números enteros."}, status=400)
+            id_pedido = int(id_pedido)
+            id_chofer = int(id_chofer)
 
-            # Obtener el pedido y el chofer con base en sus IDs
             pedido = get_object_or_404(PedidosCliente, id_pedido=id_pedido)
             chofer_auto = get_object_or_404(ChoferAuto, id_chofer=id_chofer, disponibilidad=True)
 
-            # Crear un nuevo registro en la tabla Viajes
             viaje = Viaje.objects.create(
                 id_cliente=pedido.id_cliente,
                 dir_salida=pedido.dir_salida,
                 dir_destino=pedido.dir_destino,
-                hora=timezone.now().time(),  # Hora actual con zona horaria
-                fecha=timezone.now().date(),  # Fecha actual con zona horaria
-                id_precio=1,  # Valor por defecto
-                cod_tipo_pago=1,  # Valor por defecto
-                id_remiseria=1,  # Valor por defecto
-                inicio=timezone.now().time(),  # Hora actual con zona horaria
-                fin=timezone.now().time(),  # Hora actual por ahora
-                patente=chofer_auto.patente,  # Patente del chofer
-                estado="En viaje"  # Estado inicial
+                hora=timezone.now().time(),
+                fecha=timezone.now().date(),
+                id_precio=1,
+                cod_tipo_pago=1,
+                id_remiseria=1,
+                inicio=timezone.now().time(),
+                fin=timezone.now().time(),
+                patente=chofer_auto.patente,
+                estado="En viaje"
             )
 
-            # Actualizar el estado del pedido y la disponibilidad del chofer
             pedido.estado_pedido = "Asignado"
             pedido.save()
-            chofer_auto.disponibilidad = False  # Marcamos al chofer como no disponible
+            chofer_auto.disponibilidad = False
             chofer_auto.save()
 
-            return JsonResponse({"status": "success", "message": "Viaje asignado correctamente."})
+            # Obtener la lista actualizada de viajes
+            viajes_con_chofer = Viaje.objects.filter(estado="En viaje")
 
-        except json.JSONDecodeError:
-            # Si no se puede decodificar el JSON, responder con un mensaje de error
-            return JsonResponse({"status": "error", "message": "Error al decodificar el JSON. Verifique que los datos estén en formato JSON válido."}, status=400)
+            # Devuelves la respuesta con la lista actualizada
+            return render(request, "base_pedidos.html", {
+                "pedidos": PedidosCliente.objects.filter(estado_pedido="Pendiente"),
+                "choferes": ChoferAuto.objects.filter(disponibilidad=True),
+                "viajes_con_chofer": viajes_con_chofer,
+                "mensaje": "Viaje asignado correctamente."
+            })
 
         except Exception as e:
-            # Capturar cualquier otro error
             return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
+
+
+
+def finalizar_viaje(request, id_viaje):
+    try:
+        # Obtener el viaje a través del ID
+        viaje = get_object_or_404(Viaje, id_viaje=id_viaje)
+
+        # Obtener el auto relacionado con el viaje
+        auto = viaje.patente
+
+        # Obtener el chofer asociado al auto
+        chofer_auto = get_object_or_404(ChoferAuto, patente=auto, disponibilidad=False)
+
+        # Cambiar el estado del viaje a 'Finalizado'
+        viaje.estado = "Finalizado"
+        viaje.save()
+
+        # Cambiar la disponibilidad del chofer a True
+        chofer_auto.disponibilidad = True
+        chofer_auto.save()
+
+        # Devolver una respuesta JSON exitosa
+        return JsonResponse({"status": "success", "message": "Viaje finalizado correctamente."})
+
+    except Exception as e:
+        # En caso de error, devolver un mensaje de error
+        return JsonResponse({"status": "error", "message": str(e)}, status=500)

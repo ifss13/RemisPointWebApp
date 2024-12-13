@@ -86,7 +86,11 @@ class ChoferAuto(models.Model):
 # Tabla Viaje
 class Viaje(models.Model):
     id_viaje = models.AutoField(primary_key=True)
-    id_cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE)
+    id_cliente = models.ForeignKey(
+        Cliente,
+        on_delete=models.CASCADE,
+        db_column="id_cliente"  # Especifica el nombre exacto de la columna
+    )
     dir_salida = models.CharField(max_length=255)
     dir_destino = models.CharField(max_length=255)
     hora = models.TimeField()
@@ -96,11 +100,16 @@ class Viaje(models.Model):
     id_remiseria = models.CharField(max_length=100)  # Remisería
     inicio = models.TimeField()  # Hora de inicio del viaje
     fin = models.TimeField()  # Hora de fin del viaje
-    patente = models.CharField(max_length=50)  # Patente del auto asignado
+    patente = models.ForeignKey(
+        Auto,
+        on_delete=models.CASCADE,
+        db_column="patente"
+    )# Patente del auto asignado
     estado = models.CharField(max_length=50)  # Estado del viaje (Ej. 'En progreso', 'Finalizado')
 
     class Meta:
         db_table = 'Viajes'
+        managed = False  # Para que no sea gestionada por Django
 
     def __str__(self):
         return f"Viaje {self.id_viaje} - Cliente {self.id_cliente.nombre}"
