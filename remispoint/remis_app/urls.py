@@ -14,4 +14,6 @@ urlpatterns = [
     path("pedidos/", views.pedidos, name="pedidos"),
     path('asignar-pedidos/', views.asignar_pedidos, name='asignar_pedidos'),  # Ruta para la página de asignación,
     path('finalizar-viaje/<int:id_viaje>/', views.finalizar_viaje, name='finalizar_viaje'),
+    path('cuenta/', views.panel_cuenta, name='panel_cuenta'),
+    path('cuenta/cambiar-contrasena/', views.cambiar_contrasena, name='cambiar_contrasena'),
 ]

@@ -13,7 +13,7 @@ class Localidad(models.Model):
     def __str__(self):
         return self.nombre
 
-# Tabla Cliente
+# Tabla Clientes
 class Cliente(models.Model):
     CLIENTE = 1
     CHOFER = 2
@@ -83,7 +83,7 @@ class ChoferAuto(models.Model):
         managed = False  # Evita que Django intente gestionar la tabla
         unique_together = (("patente", "id_chofer"),)  # Define la clave primaria compuesta
 
-# Tabla Viaje
+# Tabla Viajes
 class Viaje(models.Model):
     id_viaje = models.AutoField(primary_key=True)
     id_cliente = models.ForeignKey(
@@ -114,7 +114,7 @@ class Viaje(models.Model):
     def __str__(self):
         return f"Viaje {self.id_viaje} - Cliente {self.id_cliente.nombre}"
 
-# Tabla PedidosCliente (ya estaba incluida previamente)
+# Tabla PedidoCliente 
 class PedidosCliente(models.Model):
     id_pedido = models.AutoField(primary_key=True)
     id_cliente = models.ForeignKey(

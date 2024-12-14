@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Panel de Control</h2>
+    <ul class="nav nav-tabs" id="panelCuentaTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="viajes-tab" data-bs-toggle="tab" data-bs-target="#viajes" type="button" role="tab" aria-controls="viajes" aria-selected="true">Viajes Realizados</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="pedidos-tab" data-bs-toggle="tab" data-bs-target="#pedidos" type="button" role="tab" aria-controls="pedidos" aria-selected="false">Mis Pedidos</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="cambiar-contrasena-tab" data-bs-toggle="tab" data-bs-target="#cambiar-contrasena" type="button" role="tab" aria-controls="cambiar-contrasena" aria-selected="false">Cambiar Contraseña</button>
+        </li>
+    </ul>
+
+    <div class="tab-content mt-4" id="panelCuentaTabsContent">
+        <!-- Tab de Viajes Realizados -->
+        <div class="tab-pane fade show active" id="viajes" role="tabpanel" aria-labelledby="viajes-tab">
+            <h4>Viajes Realizados</h4>
+            {% if viajes %}
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Salida</th>
+                            <th>Destino</th>
+                            <th>Fecha</th>
+                            <th>Hora</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for viaje in viajes %}
+                            <tr>
+                                <td>{{ viaje.id_viaje }}</td>
+                                <td>{{ viaje.dir_salida }}</td>
+                                <td>{{ viaje.dir_destino }}</td>
+                                <td>{{ viaje.fecha }}</td>
+                                <td>{{ viaje.hora }}</td>
+                                <td>{{ viaje.estado }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p>No tienes viajes realizados.</p>
+            {% endif %}
+        </div>
+
+        <!-- Tab de Mis Pedidos -->
+        <div class="tab-pane fade" id="pedidos" role="tabpanel" aria-labelledby="pedidos-tab">
+            <h4>Mis Pedidos</h4>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Cliente</th>
+                        <th>Salida</th>
+                        <th>Destino</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if pedidos %}
+                        {% for pedido in pedidos %}
+                            <tr>
+                                <td>{{ pedido.id_pedido }}</td>
+                                <td>{{ pedido.id_cliente.nombre }}</td>
+                                <td>{{ pedido.dir_salida }}</td>
+                                <td>{{ pedido.dir_destino }}</td>
+                                <td>{{ pedido.estado_pedido }}</td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr><td colspan="5">No tienes pedidos registrados.</td></tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Tab de Cambiar Contraseña -->
+        <div class="tab-pane fade" id="cambiar-contrasena" role="tabpanel" aria-labelledby="cambiar-contrasena-tab">
+            <h4>Cambiar Contraseña</h4>
+            <form id="cambiarContrasenaForm">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="oldPassword">Contraseña Actual:</label>
+                    <input type="password" class="form-control" id="oldPassword" name="old_password" required>
+                </div>
+                <div class="form-group">
+                    <label for="nuevaContrasena">Nueva Contraseña:</label>
+                    <input type="password" class="form-control" id="nuevaContrasena" name="new_password1" required>
+                </div>
+                <div class="form-group">
+                    <label for="confirmarContrasena">Confirmar Nueva Contraseña:</label>
+                    <input type="password" class="form-control" id="confirmarContrasena" name="new_password2" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Cambiar Contraseña</button>
+            </form>
+            <div id="mensajeCambioContrasena" class="mt-3"></div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById("cambiarContrasenaForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    const oldPassword = document.getElementById("oldPassword").value;
+    const nuevaContrasena = document.getElementById("nuevaContrasena").value;
+    const confirmarContrasena = document.getElementById("confirmarContrasena").value;
+    const csrfToken = "{{ csrf_token }}";
+
+    fetch("{% url 'cambiar_contrasena' %}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-CSRFToken": csrfToken
+        },
+        body: new URLSearchParams({
+            "old_password": oldPassword,
+            "new_password1": nuevaContrasena,
+            "new_password2": confirmarContrasena
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        const mensajeDiv = document.getElementById("mensajeCambioContrasena");
+        if (data.status === "success") {
+            mensajeDiv.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+        } else {
+            let errorMessage = data.message;
+            if (data.errors) {
+                errorMessage += "<ul>";
+                for (const field in data.errors) {
+                    for (const error of data.errors[field]) {
+                        errorMessage += `<li>${error}</li>`;
+                    }
+                }
+                errorMessage += "</ul>";
+            }
+            mensajeDiv.innerHTML = `<div class="alert alert-danger">${errorMessage}</div>`;
+        }
+    })
+    .catch(error => {
+        console.error("Error:", error);
+        const mensajeDiv = document.getElementById("mensajeCambioContrasena");
+        mensajeDiv.innerHTML = `<div class="alert alert-danger">Ocurrió un error al cambiar la contraseña.</div>`;
+    });
+});
+</script>
+
+{% endblock %}
