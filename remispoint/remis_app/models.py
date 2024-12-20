@@ -27,6 +27,8 @@ class Cliente(models.Model):
 
     id_cliente = models.AutoField(primary_key=True)
     nombre = models.CharField(max_length=100)
+    apellido = models.CharField(max_length=100)
+    username = models.CharField(max_length=100)
     telefono = models.CharField(max_length=20)
     direccion = models.CharField(max_length=200)
     correo = models.EmailField()

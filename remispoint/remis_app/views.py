@@ -25,6 +25,8 @@ def register(request):
     if request.method == "POST":
         # Obtener los datos del formulario
         nombre = request.POST['nombre']
+        apellido = request.POST['apellido']
+        username = request.POST['username']
         telefono = request.POST['telefono']
         direccion = request.POST['direccion']
         correo = request.POST['correo']
@@ -40,18 +42,28 @@ def register(request):
         if password != password2:
             return render(request, 'registro.html', {'error': "Las contraseñas no coinciden", 'localidades': Localidad.objects.all()})
 
-        # Verificación de si el correo ya existe
+        # Verificación de si el correo o el username ya existen
         if User.objects.filter(email=correo).exists():
             return render(request, 'registro.html', {'error': "Este correo ya está registrado", 'localidades': Localidad.objects.all()})
+        if User.objects.filter(username=username).exists():
+            return render(request, 'registro.html', {'error': "El nombre de usuario ya está registrado", 'localidades': Localidad.objects.all()})
 
         try:
-            # Crear un nuevo usuario en Django (esto será para clientes)
-            user = User.objects.create_user(username=correo, password=password, email=correo)
+            # Crear un nuevo usuario en Django (tabla auth_user)
+            user = User.objects.create_user(
+                username=username,
+                password=password,
+                email=correo,
+                first_name=nombre,
+                last_name=apellido
+            )
 
             # Relacionar con la tabla de clientes
             localidad_obj = Localidad.objects.get(id_localidad=localidad)
             cliente = Cliente(
                 nombre=nombre,
+                apellido=apellido,
+                username=username,
                 telefono=telefono,
                 direccion=direccion,
                 correo=correo,
@@ -72,6 +84,7 @@ def register(request):
     # Si es GET, muestra el formulario de registro
     localidades = Localidad.objects.all()
     return render(request, 'registro.html', {'localidades': localidades})
+
 
 
 
