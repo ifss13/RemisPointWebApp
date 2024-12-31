@@ -1,6 +1,7 @@
 # models.py
 
 from django.db import models
+from django.contrib.auth.models import User
 
 # Tabla Localidad
 class Localidad(models.Model):
@@ -9,6 +10,7 @@ class Localidad(models.Model):
 
     class Meta:
         db_table = 'Localidad'
+        managed = False
 
     def __str__(self):
         return self.nombre
@@ -38,6 +40,7 @@ class Cliente(models.Model):
 
     class Meta:
         db_table = 'Clientes'
+        managed = False
 
     def __str__(self):
         return self.nombre
@@ -52,6 +55,7 @@ class Chofer(models.Model):
 
     class Meta:
         db_table = 'Chofer'
+        managed = False
 
     def __str__(self):
         return f"{self.nombre} {self.apellido}"
@@ -70,6 +74,7 @@ class Auto(models.Model):
 
     class Meta:
         db_table = 'Autos'
+        managed = False
 
     def __str__(self):
         return f"{self.tipo} - {self.patente}"
@@ -136,3 +141,11 @@ class PedidosCliente(models.Model):
     def __str__(self):
         return f"Pedido {self.id_pedido} de cliente {self.id_cliente}"
 
+class Notificacion(models.Model):
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE)  # Relacionamos la notificación con un usuario
+    mensaje = models.CharField(max_length=255)  # El mensaje de la notificación
+    leida = models.BooleanField(default=False)  # Si la notificación ha sido leída
+    fecha_creacion = models.DateTimeField(auto_now_add=True)  # Fecha de creación
+
+    def __str__(self):
+        return f"Notificación para {self.usuario.username}: {self.mensaje}"

@@ -9,7 +9,6 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 
-
     <style>
         /* Cambiar el color de la navbar */
         .navbar {
@@ -60,7 +59,7 @@
         .content-wrapper > .content {
             flex: 1;
         }
-        
+
         .navbar .nav-link.btn-iniciar-sesion {
             background-color: #6c757d; /* Color gris */
             color: white;  /* Texto blanco */
@@ -72,8 +71,7 @@
         .navbar .nav-link.btn-iniciar-sesion:hover {
             background-color: #5a6268; 
         }
-        
-        
+
         .btn-white {
             background-color: #fc7c44;
             color: rgb(255, 255, 255);
@@ -84,6 +82,31 @@
             background-color: #fc7c44;
             color: rgb(255, 255, 255);
             border: 1px solid #ccc;
+        }
+
+        /* Estilo para las notificaciones */
+        #notification-badge {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            font-size: 0.75rem;
+        }
+
+        .dropdown-menu {
+            width: 100%; /* Hace que ocupe todo el ancho disponible */
+            max-width: 350px; /* Establece un ancho máximo */
+            overflow: auto; /* Añade desplazamiento si es necesario */
+        }
+
+        .dropdown-item {
+            white-space: normal;  /* Permite que el texto se ajuste en varias líneas */
+            word-wrap: break-word; /* Rompe las palabras largas */
+        }
+
+        .dropdown-item button {
+            margin-left: 10px;
+            font-size: 0.8rem;
+            padding: 5px 10px;
         }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -117,7 +140,7 @@
                             <a class="nav-link active" href="/pedidos">Realizar Pedidos</a>
                         </li>
                         {% endif %}
-                        
+
                         <li class="nav-item">
                             <a class="nav-link active" href="/">Quienes Somos</a>
                         </li>
@@ -129,31 +152,43 @@
 
                     <!-- Enlaces de Registro e Iniciar sesión a la derecha -->
                     <ul class="navbar-nav ms-auto">
-                        <li class="nav-item">
-                            <div class="container">
-                                {% if user.is_authenticated %}
-                                <!-- Icono de Cuenta -->
-                                <a href="{% url 'panel_cuenta' %}">
-                                    <button type="button" class="btn btn-white">
-                                        <i class="fas fa-user"></i> Cuenta
-                                    </button>
-                                </a>
-                                <!-- Icono de Cerrar sesión -->
-                                <a href="{% url 'logout' %}">
-                                    <button type="button" class="btn btn-white">
-                                        <i class="fas fa-sign-out-alt"></i> Cerrar sesión
-                                    </button>
-                                </a>
-                                {% else %}
-                                <!-- Icono de Login -->
-                                <a href="{% url 'login' %}">
-                                    <button type="button" class="btn btn-white">
-                                        <i class="fas fa-sign-in-alt"></i> Iniciar Sesión
-                                    </button>
-                                </a>
-                                {% endif %}
-                            </div>
+                        {% if user.is_authenticated %}
+                        <!-- Icono de notificaciones -->
+                        <li class="nav-item dropdown" id="notification-item">
+                            <a class="nav-link dropdown-toggle" href="#" id="notificationsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-bell"></i>
+                                <span id="notification-badge" class="badge bg-danger" style="display: none;">0</span> <!-- Muestra el número de notificaciones -->
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="notificationsDropdown" id="notification-list">
+                                <!-- Las notificaciones se cargarán aquí con AJAX -->
+                            </ul>
                         </li>
+                        <!-- Icono de Cuenta -->
+                        <li class="nav-item">
+                            <a href="{% url 'panel_cuenta' %}">
+                                <button type="button" class="btn btn-white">
+                                    <i class="fas fa-user"></i> Cuenta
+                                </button>
+                            </a>
+                        </li>
+                        <!-- Icono de Cerrar sesión -->
+                        <li class="nav-item">
+                            <a href="{% url 'logout' %}">
+                                <button type="button" class="btn btn-white">
+                                    <i class="fas fa-sign-out-alt"></i> Cerrar sesión
+                                </button>
+                            </a>
+                        </li>
+                        {% else %}
+                        <!-- Icono de Login -->
+                        <li class="nav-item">
+                            <a href="{% url 'login' %}">
+                                <button type="button" class="btn btn-white">
+                                    <i class="fas fa-sign-in-alt"></i> Iniciar Sesión
+                                </button>
+                            </a>
+                        </li>
+                        {% endif %}
                     </ul>
                 </div>
             </div>
@@ -174,5 +209,93 @@
 
     <!-- Agregar Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Script para las notificaciones -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const notificationIcon = document.getElementById('notificationsDropdown');
+            const notificationBadge = document.getElementById('notification-badge');
+            const notificationList = document.getElementById('notification-list');
+        
+            // Función para cargar las notificaciones
+            function cargarNotificaciones() {
+                fetch('/obtener_notificaciones/')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.notificaciones) {
+                            // Limpiar la lista actual de notificaciones
+                            notificationList.innerHTML = '';
+        
+                            // Mostrar las notificaciones en la lista desplegable
+                            data.notificaciones.forEach(notificacion => {
+                                const li = document.createElement('li');
+                                li.classList.add('dropdown-item');
+                                li.textContent = `${notificacion.mensaje} - ${notificacion.fecha}`;
+        
+                                // Crear el botón para marcar como leída
+                                const btnLeida = document.createElement('button');
+                                btnLeida.textContent = 'Marcar como leída';
+                                btnLeida.classList.add('btn', 'btn-sm', 'btn-success');
+                                btnLeida.addEventListener('click', function(event) {
+                                    marcarComoLeida(notificacion.id, event.target);
+                                });
+        
+                                li.appendChild(btnLeida);
+                                notificationList.appendChild(li);
+                            });
+        
+                            // Actualizar el badge con el número de notificaciones
+                            notificationBadge.textContent = data.notificaciones.length;
+                            notificationBadge.style.display = data.notificaciones.length > 0 ? 'inline' : 'none';
+                        }
+                    })
+                    .catch(error => console.error('Error al cargar notificaciones:', error));
+            }
+        
+            // Función para marcar como leída
+            function marcarComoLeida(notificacionId, button) {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        
+                fetch(`/marcar_como_leida/${notificacionId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({})
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const notificationItem = button.closest('li');
+                        notificationItem.remove();
+        
+                        const currentCount = parseInt(notificationBadge.textContent, 10) || 0;
+                        notificationBadge.textContent = currentCount > 1 ? currentCount - 1 : '';
+                        if (currentCount - 1 <= 0) {
+                            notificationBadge.style.display = 'none';
+                        }
+                    } else {
+                        console.error('Error al marcar como leída:', data.error);
+                    }
+                })
+                .catch(error => console.error('Error al hacer la solicitud:', error));
+            }
+        
+            // Actualizar las notificaciones automáticamente cada 5 segundos
+            setInterval(cargarNotificaciones, 5000);
+        
+            // Cargar notificaciones al hacer clic en el ícono
+            notificationIcon.addEventListener('click', function() {
+                cargarNotificaciones();
+            });
+        });
+    </script>
+    
+    
 </body>
+<meta name="csrf-token" content="{% csrf_token %}">
 </html>
+
+
+

@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}Esperando Chofer - RemisPoint{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Pedido en espera de chofer</h1>
+    <p><strong>Dirección de salida:</strong> {{ pedido.dir_salida }}</p>
+    <p><strong>Destino:</strong> {{ pedido.dir_destino }}</p>
+    <p><strong>Estado del pedido:</strong> {{ estado_pedido }}</p>
+
+    <!-- Spinner mientras esperamos la asignación -->
+    <div id="spinner">🔄 Esperando asignación de chofer...</div>
+    <div id="info-chofer" style="display:none;">
+        <h3>¡Chofer asignado!</h3>
+        <p><strong>Nombre:</strong> <span id="chofer-nombre"></span></p>
+        <p><strong>Teléfono:</strong> <span id="chofer-telefono"></span></p>
+        <p><strong>Auto:</strong> <span id="auto-modelo"></span></p>
+        <p><strong>Patente:</strong> <span id="auto-patente"></span></p>
+    </div>
+
+    <script>
+    function verificarEstadoPedido() {
+        fetch("{% url 'verificar_estado_pedido' pedido.id_pedido %}")
+            .then(response => response.json())
+            .then(data => {
+                if (data.estado_pedido === 'Asignado') {
+                    document.getElementById('spinner').style.display = 'none';
+                    document.getElementById('info-chofer').style.display = 'block';
+                    document.getElementById('chofer-nombre').innerText = data.chofer.nombre;
+                    document.getElementById('chofer-telefono').innerText = data.chofer.telefono;
+                    document.getElementById('auto-modelo').innerText = data.auto.modelo;
+                    document.getElementById('auto-patente').innerText = data.auto.patente;
+                }
+            })
+            .catch(error => console.error('Error:', error));
+    }
+
+    // Ejecutar cada 5 segundos
+    setInterval(verificarEstadoPedido, 5000);
+    </script>
+</div>
+{% endblock %}

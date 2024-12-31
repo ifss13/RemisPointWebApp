@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block title %}No Autorizado{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="alert alert-danger text-center">
+        <h4 class="alert-heading">Acceso Denegado</h4>
+        <p>{{ error }}</p>
+    </div>
+    <a href="{% url 'home' %}" class="btn btn-primary">Volver al inicio</a>
+</div>
+{% endblock %}

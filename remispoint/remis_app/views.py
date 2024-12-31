@@ -13,11 +13,13 @@ from django.conf import settings
 import requests
 from .models import PedidosCliente
 import json
-from remis_app.models import PedidosCliente, ChoferAuto, Cliente, Viaje
+from remis_app.models import PedidosCliente, ChoferAuto, Cliente, Viaje, Chofer, Auto, Notificacion
 from django.shortcuts import get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
+from remis_app.decorador import base_required
+from django.views.decorators.csrf import csrf_exempt
 
 ORS_API_KEY = '5b3ce3597851110001cf6248bbaa88fc959c42db9efc751597c03a47'
 
@@ -181,6 +183,7 @@ def geocodificar_inversa(request):
 
     return JsonResponse({'error': 'Coordenadas no válidas'}, status=400)
 
+
 @login_required
 def pedidos(request):
     if request.method == "POST":
@@ -196,26 +199,95 @@ def pedidos(request):
             cliente = get_object_or_404(Cliente, correo=request.user.email)
 
             # Crear el registro en la tabla PedidoCliente
-            PedidosCliente.objects.create(
+            pedido = PedidosCliente.objects.create(
                 id_cliente=cliente,
                 dir_salida=dir_salida,
                 dir_destino=dir_destino,
                 estado_pedido="Pendiente"
             )
-            return JsonResponse({"status": "success", "message": "Pedido registrado correctamente."})
+
+            # Devolver la URL a la que se debe redirigir el cliente
+            return JsonResponse({"status": "success", "redirect_url": f"/esperando_chofer/{pedido.id_pedido}/"})
+
         except Exception as e:
             return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
-    # Manejo de solicitudes GET
     elif request.method == "GET":
-        return render(request, "pedidos.html")  # Renderiza la plantilla para el formulario de pedidos
+        return render(request, "pedidos.html")
 
-    # Otros métodos no permitidos
     return JsonResponse({"status": "error", "message": "Método no permitido."}, status=405)
 
-import datetime
+
+@login_required
+def esperando_chofer(request, pedido_id):
+    # Obtener el pedido del cliente
+    pedido = PedidosCliente.objects.get(id_pedido=pedido_id)
+
+    if pedido.estado_pedido == "Asignado":
+        # Buscar el viaje asignado a este pedido, y que el estado sea "En Viaje"
+        viaje = Viaje.objects.filter(id_cliente=pedido.id_cliente, estado="En Viaje").first()  # Seleccionamos el primer viaje en estado "En Viaje"
+
+        if viaje:
+            # Obtener la patente del auto desde el viaje
+            patente_auto = viaje.patente
+
+            # Buscar la relación del chofer con el auto
+            chofer_auto = ChoferAuto.objects.filter(patente=patente_auto, disponibilidad=True).first()
+
+            if chofer_auto:
+                # Obtener los datos del chofer
+                chofer = Chofer.objects.get(id_chofer=chofer_auto.id_chofer)
+                
+                # Obtener los datos del auto
+                auto = Auto.objects.get(patente=patente_auto)
+
+                # Renderizar la página con los datos del chofer y el auto
+                return render(request, 'chofer_asignado.html', {
+                    'pedido': pedido,
+                    'chofer': chofer,
+                    'auto': auto,
+                })
+            else:
+                # En caso de que no haya un chofer disponible
+                return render(request, 'esperando_chofer.html', {'pedido': pedido})
+        else:
+            # Si no se encuentra un viaje en estado "En Viaje"
+            return render(request, 'esperando_chofer.html', {'pedido': pedido})
+    else:
+        # Si el pedido aún está pendiente, mostrar el spinner
+        return render(request, 'esperando_chofer.html', {'pedido': pedido})
+
+@login_required
+def verificar_estado_pedido(request, pedido_id):
+    try:
+        pedido = PedidosCliente.objects.get(id_pedido=pedido_id)
+        
+        if pedido.estado_pedido == "Pendiente":
+            return JsonResponse({'estado_pedido': 'Pendiente'})
+        
+        elif pedido.estado_pedido == "Asignado":
+            viaje = Viaje.objects.get(id_cliente=pedido.id_cliente, estado='Asignado')
+            auto = Auto.objects.get(patente=viaje.patente)
+            chofer_auto = ChoferAuto.objects.get(patente=viaje.patente)
+            chofer = Chofer.objects.get(id_chofer=chofer_auto.id_chofer)
+            
+            return JsonResponse({
+                'estado_pedido': 'Asignado',
+                'chofer': {
+                    'nombre': chofer.nombre,
+                    'telefono': chofer.telefono
+                },
+                'auto': {
+                    'modelo': auto.modelo,
+                    'patente': auto.patente
+                }
+            })
+    except Exception as e:
+        return JsonResponse({'estado_pedido': 'Error', 'message': str(e)}, status=500)
+
 from django.utils import timezone
 
+@base_required
 def asignar_pedidos(request):
     if request.method == "GET":
         pedidos_pendientes = PedidosCliente.objects.filter(estado_pedido="Pendiente")
@@ -261,6 +333,14 @@ def asignar_pedidos(request):
             chofer_auto.disponibilidad = False
             chofer_auto.save()
 
+            cliente = pedido.id_cliente  # Aquí estás obteniendo el cliente
+            usuario = User.objects.get(email=cliente.correo)
+
+            Notificacion.objects.create(
+                usuario=usuario,  # Aquí pasas la instancia de 'User', no el correo
+                mensaje="Tu viaje ha sido asignado, el chofer está en camino."
+            )
+
             # Obtener la lista actualizada de viajes
             viajes_con_chofer = Viaje.objects.filter(estado="En viaje")
 
@@ -275,7 +355,10 @@ def asignar_pedidos(request):
         except Exception as e:
             return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
-
+@base_required
+def base_pedidos(request):
+    # Lógica de la vista para la página "base_pedidos"
+    return render(request, 'base_pedidos.html')
 
 
 def finalizar_viaje(request, id_viaje):
@@ -307,15 +390,22 @@ def finalizar_viaje(request, id_viaje):
 
 @login_required
 def panel_cuenta(request):
+    # Obtener el cliente relacionado con el usuario logueado
     cliente = get_object_or_404(Cliente, correo=request.user.email)
     
+    # Verificar si el cliente tiene tipo de cuenta 'base' (tipo_cuenta == 3)
+    es_base = cliente.tipo_cuenta == 3  # Esto es True si el cliente es tipo 'base'
+    
+    # Obtener los viajes y pedidos del cliente
     viajes = Viaje.objects.filter(id_cliente=cliente.id_cliente)
     pedidos = PedidosCliente.objects.filter(id_cliente=cliente.id_cliente)
 
+    # Pasar la variable 'es_base' a la plantilla para usarla en el frontend
     return render(request, 'panel_cuenta.html', {
         'cliente': cliente,
         'viajes': viajes,
         'pedidos': pedidos,
+        'es_base': es_base,  # Aquí pasamos la variable
     })
 
 
@@ -356,3 +446,36 @@ def cambiar_contrasena(request):
         })
 
 
+def no_autorizado(request):
+    return render(request, 'no_autorizado.html', {'error': "No tienes permisos para acceder a esta página."})
+
+
+def obtener_notificaciones(request):
+    if request.user.is_authenticated:
+        # Obtener solo las notificaciones no leídas
+        notificaciones = Notificacion.objects.filter(usuario=request.user, leida=False).order_by('-fecha_creacion')
+        
+        # Crear una lista de notificaciones con solo la información que necesitamos
+        notificaciones_data = [{
+            'id': notificacion.id,
+            'mensaje': notificacion.mensaje,
+            'fecha': notificacion.fecha_creacion.strftime('%Y-%m-%d %H:%M:%S'),
+        } for notificacion in notificaciones]
+
+        return JsonResponse({'notificaciones': notificaciones_data}, status=200)
+
+    return JsonResponse({'error': 'Usuario no autenticado'}, status=401)
+
+
+@csrf_exempt  # Solo usa esto si decides deshabilitar el CSRF, aunque no se recomienda
+def marcar_como_leida(request, id):
+    if request.method == 'POST':
+        try:
+            # Obtener la notificación utilizando el id
+            notificacion = Notificacion.objects.get(id=id)
+            notificacion.leida = True
+            notificacion.save()
+            return JsonResponse({'success': True})
+        except Notificacion.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Notificación no encontrada'})
+        

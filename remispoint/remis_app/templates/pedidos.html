@@ -231,7 +231,8 @@
         .then(response => response.json())
         .then(data => {
             if (data.status === "success") {
-                alert(data.message);
+                // Redirigir al cliente a la página esperando_chofer
+                window.location.href = data.redirect_url;  // Esta es la nueva URL que nos devuelve el backend
             } else {
                 alert(`Error: ${data.message}`);
             }

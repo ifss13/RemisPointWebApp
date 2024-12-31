@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 from django.contrib.auth import views as auth_views
+from remis_app.views import base_pedidos, no_autorizado
 
 urlpatterns = [
     path('registro/', views.register, name='registro'),
@@ -16,4 +17,9 @@ urlpatterns = [
     path('finalizar-viaje/<int:id_viaje>/', views.finalizar_viaje, name='finalizar_viaje'),
     path('cuenta/', views.panel_cuenta, name='panel_cuenta'),
     path('cuenta/cambiar-contrasena/', views.cambiar_contrasena, name='cambiar_contrasena'),
+    path('no_autorizado/', no_autorizado, name='no_autorizado'),
+    path('esperando_chofer/<int:pedido_id>/', views.esperando_chofer, name='esperando_chofer'),  # Asegúrate de que esta URL esté definida
+    path('verificar_estado_pedido/<int:pedido_id>/', views.verificar_estado_pedido, name='verificar_estado_pedido'),
+    path('obtener_notificaciones/', views.obtener_notificaciones, name='obtener_notificaciones'),
+    path('marcar_como_leida/<int:id>/', views.marcar_como_leida, name='marcar_como_leida'),
 ]
