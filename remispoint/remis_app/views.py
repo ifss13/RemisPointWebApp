@@ -13,7 +13,7 @@ from django.conf import settings
 import requests
 from .models import PedidosCliente
 import json
-from remis_app.models import PedidosCliente, ChoferAuto, Cliente, Viaje, Chofer, Auto, Notificacion
+from remis_app.models import PedidosCliente, ChoferAuto, Cliente, Viaje, Chofer, Auto, Notificacion, Remiseria
 from django.shortcuts import get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.forms import PasswordChangeForm
@@ -188,22 +188,40 @@ def geocodificar_inversa(request):
 def pedidos(request):
     if request.method == "POST":
         try:
-            data = json.loads(request.body)  # Leer los datos enviados por el frontend
+            # Leer los datos enviados por el frontend
+            data = json.loads(request.body)
             dir_salida = data.get("dir_salida")
             dir_destino = data.get("dir_destino")
 
+            remiseria_id = data.get('id_remiseria')  # Cambié de GET a POST
+
+            # Verificar si remiseria_id está presente
+            if remiseria_id is None:
+                return JsonResponse({"status": "error", "message": "No se proporcionó el id de la remisería."}, status=400)
+
+            # Intentar convertir remiseria_id a un entero
+            try:
+                remiseria_id = int(remiseria_id)
+            except ValueError:
+                return JsonResponse({"status": "error", "message": "El id de la remisería no es válido."}, status=400)
+
+            # Validar que las direcciones estén presentes
             if not dir_salida or not dir_destino:
                 return JsonResponse({"status": "error", "message": "Por favor completa ambos campos."}, status=400)
 
             # Obtener el cliente relacionado con el usuario actual
             cliente = get_object_or_404(Cliente, correo=request.user.email)
 
+            # Obtener la instancia de Remiseria usando el id
+            remiseria = get_object_or_404(Remiseria, id_remiseria=remiseria_id)
+
             # Crear el registro en la tabla PedidoCliente
             pedido = PedidosCliente.objects.create(
                 id_cliente=cliente,
                 dir_salida=dir_salida,
                 dir_destino=dir_destino,
-                estado_pedido="Pendiente"
+                estado_pedido="Pendiente",
+                id_remiseria=remiseria  # Aquí asignas la instancia de Remiseria
             )
 
             # Devolver la URL a la que se debe redirigir el cliente
@@ -213,9 +231,12 @@ def pedidos(request):
             return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
     elif request.method == "GET":
-        return render(request, "pedidos.html")
+        remiseria_id = request.GET.get('remiseria_id')  # Capturamos el remiseria_id de la URL
+        return render(request, "pedidos.html", {'remiseria_id': remiseria_id})
 
     return JsonResponse({"status": "error", "message": "Método no permitido."}, status=405)
+
+
 
 
 @login_required
@@ -479,3 +500,9 @@ def marcar_como_leida(request, id):
         except Notificacion.DoesNotExist:
             return JsonResponse({'success': False, 'error': 'Notificación no encontrada'})
         
+def remiserias(request):
+    # Obtener todas las remiserías desde la base de datos
+    remiseria = Remiseria.objects.all()
+    
+    # Pasar las remiserías al template
+    return render(request, 'remiseria.html', {'remiserias': remiseria})

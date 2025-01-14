@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block title %}Seleccionar Remisería - RemisPoint{% endblock %}
+
+{% block content %}
+<style>
+    .remiseria-card {
+        cursor: pointer;
+        padding: 10px;
+        text-align: center;
+        margin: 10px;
+        border: 1px solid #ccc;
+        border-radius: 10px;
+        display: inline-block;
+        width: 250px;
+    }
+
+    .remiseria-card:hover {
+        background-color: #f1f1f1;
+    }
+
+    .remiseria-card img {
+        width: 100%;
+        height: 150px;
+        object-fit: cover;
+        border-radius: 8px;
+    }
+</style>
+<h1>Remiserías afiliadas</h1>
+<h4>Selecciona la remisería para realizar el pedido</h4>
+{% for remiseria in remiserias %}
+<div class="remiseria-card" onclick="selectRemiseria('{{ remiseria.id_remiseria }}')">
+    {% if remiseria.foto %}
+        <img src="../static/images/Remis_obe_logo.png" alt="{{ remiseria.nombre }}" style="max-width: 200px; height: auto;">
+    {% else %}
+        <img src="../static/images/Remis_obe_logo.png" alt="{{ remiseria.nombre }}" style="max-width: 200px; height: auto;">
+    {% endif %}
+    <h3>{{ remiseria.nombre }}</h3>
+    <p>Tel: {{ remiseria.telefono }}</p>
+</div>
+{% endfor %}
+<!--REMISERIAS DE EJEMPLO-->
+<div class="remiseria-card">
+    <img src="../static/images/Remis-Point.png" alt="Remiseria Ejemplo 1" style="max-width: 200px; height: 200px;">
+    <h3>Remiseria 1</h3>
+    <p>S/N</p>
+</div>
+<div class="remiseria-card">
+    <img src="../static/images/Remis-Point.png" alt="Remiseria Ejemplo 2" style="max-width: 200px; height: 200px;">
+    <h3>Remiseria 2</h3>
+    <p>S/N</p>
+</div>
+<div class="remiseria-card">
+    <img src="../static/images/Remis-Point.png" alt="Remiseria Ejemplo 3" style="max-width: 200px; height: 200px;">
+    <h3>Remiseria 3</h3>
+    <p>S/N</p>
+</div>
+<br>
+<h5>Ver ubicacion de remiserías afiliadas:</h5>
+<p>*mapa*</p>
+<script>
+    function selectRemiseria(remiseriaId) {
+        // Redirigir a pedidos.html con el ID de la remisería seleccionada
+        window.location.href = `/pedidos/?remiseria_id=${remiseriaId}`;
+    }
+</script>
+{% endblock %}

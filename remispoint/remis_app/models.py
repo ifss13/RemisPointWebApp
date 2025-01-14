@@ -121,6 +121,22 @@ class Viaje(models.Model):
     def __str__(self):
         return f"Viaje {self.id_viaje} - Cliente {self.id_cliente.nombre}"
 
+class Remiseria(models.Model):
+    id_remiseria = models.AutoField(primary_key=True)  # La clave primaria será un campo entero auto-incremental
+    nombre = models.CharField(max_length=255)  # Ajusta el max_length según el tamaño de la cadena
+    telefono = models.CharField(max_length=255)  # Ajusta el max_length según el tamaño de la cadena
+    password = models.CharField(max_length=255)  # Para almacenar contraseñas (deberías considerar usar Django's User model o algún hash para seguridad)
+    foto = models.CharField(max_length=255, blank=True, null=True)  # Ruta o URL de la foto
+    esta_abierta = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.nombre  # Este método es opcional y proporciona una representación legible del objeto
+    
+
+    class Meta:
+        db_table = 'Remiseria'  # Nombre de la tabla en la base de datos (si no es el mismo que el del modelo)
+        managed = False  # Para que no sea gestionada por Django
+        
 # Tabla PedidoCliente 
 class PedidosCliente(models.Model):
     id_pedido = models.AutoField(primary_key=True)
@@ -132,6 +148,9 @@ class PedidosCliente(models.Model):
     dir_salida = models.CharField(max_length=255)
     dir_destino = models.CharField(max_length=255)
     estado_pedido = models.CharField(max_length=100)
+    id_remiseria = models.ForeignKey(Remiseria,         
+        on_delete=models.CASCADE,
+        db_column="id_remiseria")
 
 
     class Meta:
@@ -149,3 +168,5 @@ class Notificacion(models.Model):
 
     def __str__(self):
         return f"Notificación para {self.usuario.username}: {self.mensaje}"
+    
+

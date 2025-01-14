@@ -102,18 +102,20 @@
 <div class="container home-container">
     <div class="left-section">
         <h1>Registrar Pedido</h1>
+        
         <h3>Selecciona los puntos en el mapa</h3>
+        <input type="hidden" name="remiseria_id" value="{{ remiseria_id }}">
         <br>
+        
         <label for="punto-partida">Punto de partida</label>
         <div class="input-group">
             <input type="text" id="punto-partida" placeholder="Ingrese punto de partida" readonly disabled>
         </div>
-
+        
         <label for="entrega">Destino</label>
         <div class="input-group">
             <input type="text" id="entrega" placeholder="Ingrese lugar de destino" readonly disabled>
         </div>
-
         <button class="btn btn-primary" onclick="registrarPedido()">Registrar Pedido</button>
         <button class="btn btn-secondary" onclick="limpiarMapa()">Limpiar Mapa</button>
 
@@ -211,9 +213,10 @@
     function registrarPedido() {
         const dirSalida = document.getElementById("punto-partida").value;
         const dirDestino = document.getElementById("entrega").value;
+        const remiseriaId = new URLSearchParams(window.location.search).get("remiseria_id");
 
-        if (!dirSalida || !dirDestino) {
-            alert("Por favor, selecciona tanto el punto de partida como el destino en el mapa.");
+        if (!dirSalida || !dirDestino || !remiseriaId) {
+            alert("Por favor, selecciona tanto el punto de partida, el destino y una remisería.");
             return;
         }
 
@@ -225,14 +228,14 @@
             },
             body: JSON.stringify({
                 dir_salida: dirSalida,
-                dir_destino: dirDestino
+                dir_destino: dirDestino,
+                id_remiseria: remiseriaId
             })
         })
         .then(response => response.json())
         .then(data => {
             if (data.status === "success") {
-                // Redirigir al cliente a la página esperando_chofer
-                window.location.href = data.redirect_url;  // Esta es la nueva URL que nos devuelve el backend
+                window.location.href = data.redirect_url;
             } else {
                 alert(`Error: ${data.message}`);
             }
@@ -242,8 +245,5 @@
             alert("Ocurrió un error al registrar el pedido. Intente nuevamente.");
         });
     }
-
-
 </script>
 {% endblock %}
-

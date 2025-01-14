@@ -22,4 +22,5 @@ urlpatterns = [
     path('verificar_estado_pedido/<int:pedido_id>/', views.verificar_estado_pedido, name='verificar_estado_pedido'),
     path('obtener_notificaciones/', views.obtener_notificaciones, name='obtener_notificaciones'),
     path('marcar_como_leida/<int:id>/', views.marcar_como_leida, name='marcar_como_leida'),
+    path('remiseria/', views.remiserias, name='remiseria'),
 ]
