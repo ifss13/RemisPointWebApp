@@ -77,7 +77,7 @@ class Auto(models.Model):
         managed = False
 
     def __str__(self):
-        return f"{self.tipo} - {self.patente}"
+        return f"{self.patente}"
     
 class ChoferAuto(models.Model):
     patente = models.ForeignKey(Auto, on_delete=models.CASCADE, db_column="patente")

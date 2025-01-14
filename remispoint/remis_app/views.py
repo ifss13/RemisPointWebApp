@@ -241,70 +241,29 @@ def pedidos(request):
 
 @login_required
 def esperando_chofer(request, pedido_id):
-    # Obtener el pedido del cliente
-    pedido = PedidosCliente.objects.get(id_pedido=pedido_id)
+    # Pasamos únicamente el pedido_id al template
+    return render(request, 'esperando_chofer.html', {'pedido_id': pedido_id})
 
-    if pedido.estado_pedido == "Asignado":
-        # Buscar el viaje asignado a este pedido, y que el estado sea "En Viaje"
-        viaje = Viaje.objects.filter(id_cliente=pedido.id_cliente, estado="En Viaje").first()  # Seleccionamos el primer viaje en estado "En Viaje"
-
-        if viaje:
-            # Obtener la patente del auto desde el viaje
-            patente_auto = viaje.patente
-
-            # Buscar la relación del chofer con el auto
-            chofer_auto = ChoferAuto.objects.filter(patente=patente_auto, disponibilidad=True).first()
-
-            if chofer_auto:
-                # Obtener los datos del chofer
-                chofer = Chofer.objects.get(id_chofer=chofer_auto.id_chofer)
-                
-                # Obtener los datos del auto
-                auto = Auto.objects.get(patente=patente_auto)
-
-                # Renderizar la página con los datos del chofer y el auto
-                return render(request, 'chofer_asignado.html', {
-                    'pedido': pedido,
-                    'chofer': chofer,
-                    'auto': auto,
-                })
-            else:
-                # En caso de que no haya un chofer disponible
-                return render(request, 'esperando_chofer.html', {'pedido': pedido})
-        else:
-            # Si no se encuentra un viaje en estado "En Viaje"
-            return render(request, 'esperando_chofer.html', {'pedido': pedido})
-    else:
-        # Si el pedido aún está pendiente, mostrar el spinner
-        return render(request, 'esperando_chofer.html', {'pedido': pedido})
 
 @login_required
 def verificar_estado_pedido(request, pedido_id):
     try:
         pedido = PedidosCliente.objects.get(id_pedido=pedido_id)
-        
+
         if pedido.estado_pedido == "Pendiente":
             return JsonResponse({'estado_pedido': 'Pendiente'})
-        
+
         elif pedido.estado_pedido == "Asignado":
-            viaje = Viaje.objects.get(id_cliente=pedido.id_cliente, estado='Asignado')
-            auto = Auto.objects.get(patente=viaje.patente)
-            chofer_auto = ChoferAuto.objects.get(patente=viaje.patente)
-            chofer = Chofer.objects.get(id_chofer=chofer_auto.id_chofer)
-            
-            return JsonResponse({
-                'estado_pedido': 'Asignado',
-                'chofer': {
-                    'nombre': chofer.nombre,
-                    'telefono': chofer.telefono
-                },
-                'auto': {
-                    'modelo': auto.modelo,
-                    'patente': auto.patente
-                }
-            })
+            return JsonResponse({'estado_pedido': 'Asignado'})
+
+    except PedidosCliente.DoesNotExist:
+        return JsonResponse({'estado_pedido': 'Error', 'message': 'Pedido no encontrado'}, status=404)
+
     except Exception as e:
         return JsonResponse({'estado_pedido': 'Error', 'message': str(e)}, status=500)
+
+
+
 
 from django.utils import timezone
 
@@ -506,3 +465,37 @@ def remiserias(request):
     
     # Pasar las remiserías al template
     return render(request, 'remiseria.html', {'remiserias': remiseria})
+
+def viaje(request):
+    try:
+        # Obtener el cliente actual
+        cliente = Cliente.objects.get(correo=request.user.email)
+
+        # Buscar el viaje asignado
+        viaje = Viaje.objects.filter(id_cliente=cliente.id_cliente, estado="En viaje").first()
+
+        if not viaje:
+            return render(request, 'viaje.html', {'error': "No tienes un viaje en progreso."})
+
+        # Obtener la información del chofer y del auto
+        chofer_auto = ChoferAuto.objects.get(patente=viaje.patente)
+        chofer = Chofer.objects.get(id_chofer=chofer_auto.id_chofer.id_chofer)
+        auto = Auto.objects.get(patente=viaje.patente)
+
+        # Enviar los datos al template
+        return render(request, 'viaje.html', {
+            'viaje': viaje,
+            'chofer': chofer,
+            'auto': auto
+        })
+
+    except Auto.DoesNotExist:
+        return render(request, 'viaje.html', {
+            'error': f"El auto asociado al viaje con la patente '{viaje.patente}' no existe."
+        })
+    except ChoferAuto.DoesNotExist:
+        return render(request, 'viaje.html', {'error': "No se encontró información del chofer para este auto."})
+    except Chofer.DoesNotExist:
+        return render(request, 'viaje.html', {'error': "No se encontró información del chofer."})
+    except Exception as e:
+        return render(request, 'viaje.html', {'error': str(e)})

@@ -4,40 +4,58 @@
 
 {% block content %}
 <div class="container">
-    <h1>Pedido en espera de chofer</h1>
-    <p><strong>Dirección de salida:</strong> {{ pedido.dir_salida }}</p>
-    <p><strong>Destino:</strong> {{ pedido.dir_destino }}</p>
-    <p><strong>Estado del pedido:</strong> {{ estado_pedido }}</p>
+    <h2>Estado del Pedido</h2>
+    {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+    {% else %}
+        <div id="estado-pedido">
+            <p>Pedido ID: {{ pedido.id_pedido }}</p>
 
-    <!-- Spinner mientras esperamos la asignación -->
-    <div id="spinner">🔄 Esperando asignación de chofer...</div>
-    <div id="info-chofer" style="display:none;">
-        <h3>¡Chofer asignado!</h3>
-        <p><strong>Nombre:</strong> <span id="chofer-nombre"></span></p>
-        <p><strong>Teléfono:</strong> <span id="chofer-telefono"></span></p>
-        <p><strong>Auto:</strong> <span id="auto-modelo"></span></p>
-        <p><strong>Patente:</strong> <span id="auto-patente"></span></p>
-    </div>
+            {% if viaje_asignado %}
+                <h3>Tu viaje ha sido asignado</h3>
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Información del Chofer</h5>
+                        <p><strong>Nombre:</strong> {{ chofer.nombre }}</p>
+                        <p><strong>Teléfono:</strong> {{ chofer.nro_tel }}</p>
+                    </div>
+                </div>
+                <div class="card mt-3">
+                    <div class="card-body">
+                        <h5 class="card-title">Información del Auto</h5>
+                        <p><strong>Tipo:</strong> {{ auto.tipo }}</p>
+                        <p><strong>Patente:</strong> {{ auto.patente }}</p>
+                        <p><strong>Año Modelo:</strong> {{ auto.anio_modelo }}</p>
+                    </div>
+                </div>
+            {% else %}
+                <h3>Esperando asignación de chofer...</h3>
+                <div class="spinner-border text-primary" role="status">
+                    <span class="sr-only">Cargando...</span>
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
 
-    <script>
-    function verificarEstadoPedido() {
-        fetch("{% url 'verificar_estado_pedido' pedido.id_pedido %}")
+
+<script>
+    const pedidoId = "{{ pedido_id }}";  // Asegúrate de que pedido_id esté disponible en el contexto
+    setInterval(() => {
+        fetch(`/verificar_pedido/${pedidoId}/`)
             .then(response => response.json())
             .then(data => {
                 if (data.estado_pedido === 'Asignado') {
-                    document.getElementById('spinner').style.display = 'none';
-                    document.getElementById('info-chofer').style.display = 'block';
-                    document.getElementById('chofer-nombre').innerText = data.chofer.nombre;
-                    document.getElementById('chofer-telefono').innerText = data.chofer.telefono;
-                    document.getElementById('auto-modelo').innerText = data.auto.modelo;
-                    document.getElementById('auto-patente').innerText = data.auto.patente;
+                    // Redirigir a viaje.html cuando el pedido está asignado
+                    window.location.href = "/viaje/";
                 }
             })
-            .catch(error => console.error('Error:', error));
-    }
+            .catch(error => console.error('Error al verificar el estado:', error));
+    }, 5000); // Verificar cada 5 segundos
+</script>
 
-    // Ejecutar cada 5 segundos
-    setInterval(verificarEstadoPedido, 5000);
-    </script>
+
+
+
 </div>
 {% endblock %}

@@ -77,7 +77,7 @@ WSGI_APPLICATION = 'remispoint.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'remispoint',  # Nombre de la base de datos
+        'NAME': 'remispoint_new',  # Nombre de la base de datos
         'USER': 'postgres',    # Usuario de la base de datos
         'PASSWORD': 'loko123', # Contraseña del usuario
         'HOST': 'localhost',   # Host (puede ser una IP o "localhost")
