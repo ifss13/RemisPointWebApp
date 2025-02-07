@@ -1,0 +1,12 @@
+<form method="POST">
+    {% csrf_token %}
+    <input type="hidden" name="id_chofer" value="{{ chofer.id_chofer }}">
+    <input type="hidden" name="operation" value="eliminar_chofer">
+    <div class="modal-body">
+        <p>¿Estás seguro de que deseas eliminar al chofer <strong>{{ chofer.nombre }} {{ chofer.apellido }}</strong>?</p>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-danger">Eliminar</button>
+    </div>
+</form>

@@ -13,13 +13,14 @@ from django.conf import settings
 import requests
 from .models import PedidosCliente
 import json
-from remis_app.models import PedidosCliente, ChoferAuto, Cliente, Viaje, Chofer, Auto, Notificacion, Remiseria
+from remis_app.models import PedidosCliente, ChoferAuto, Cliente, Viaje, Chofer, Auto, Notificacion, Remiseria, TipoPago
 from django.shortcuts import get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
 from remis_app.decorador import base_required
 from django.views.decorators.csrf import csrf_exempt
+from .forms import AutoForm
 
 ORS_API_KEY = '5b3ce3597851110001cf6248bbaa88fc959c42db9efc751597c03a47'
 
@@ -241,8 +242,24 @@ def pedidos(request):
 
 @login_required
 def esperando_chofer(request, pedido_id):
-    # Pasamos únicamente el pedido_id al template
-    return render(request, 'esperando_chofer.html', {'pedido_id': pedido_id})
+    try:
+        pedido = get_object_or_404(PedidosCliente, id_pedido=pedido_id)
+        viaje = Viaje.objects.filter(id_cliente=pedido.id_cliente).first()
+        chofer = viaje.chofer if viaje else None
+        auto = Auto.objects.filter(patente=viaje.patente).first() if viaje else None
+
+        return render(request, 'esperando_chofer.html', {
+            'pedido_id': pedido_id,
+            'chofer': chofer,
+            'auto': auto,
+            'viaje_asignado': viaje is not None,
+        })
+    except Exception as e:
+        return render(request, 'esperando_chofer.html', {
+            'pedido_id': pedido_id,
+            'error': f"Error: {str(e)}"
+        })
+
 
 
 @login_required
@@ -267,78 +284,276 @@ def verificar_estado_pedido(request, pedido_id):
 
 from django.utils import timezone
 
+
 @base_required
 def asignar_pedidos(request):
     if request.method == "GET":
         pedidos_pendientes = PedidosCliente.objects.filter(estado_pedido="Pendiente")
         choferes_disponibles = ChoferAuto.objects.filter(disponibilidad=True)
         viajes_en_viaje = Viaje.objects.filter(estado="En viaje")
+        autos = Auto.objects.all()
+        remiserias = Remiseria.objects.all()
+        choferes = Chofer.objects.all()
+        asignaciones = ChoferAuto.objects.select_related('patente', 'id_chofer')  # Datos de la tabla puente
+        viajes_registrados = Viaje.objects.all()
+        tipopago = TipoPago.objects.all()
+
         return render(request, "base_pedidos.html", {
             "pedidos": pedidos_pendientes,
             "choferes": choferes_disponibles,
-            "viajes_en_viaje": viajes_en_viaje
+            "viajes_en_viaje": viajes_en_viaje,
+            "autos": autos,
+            "remiserias": remiserias,
+            "choferes_list": choferes,
+            "asignaciones": asignaciones,
+            "viajes_registrados": viajes_registrados,
+            "tipopago": tipopago,  
         })
 
+
     elif request.method == "POST":
-        try:
-            id_pedido = request.POST.get("id_pedido")
-            id_chofer = request.POST.get("id_chofer")
+        operation = request.POST.get("operation")
 
-            if not id_pedido or not id_chofer:
-                return JsonResponse({"status": "error", "message": "Datos incompletos."}, status=400)
+        if not operation:
+            return JsonResponse({"status": "error", "message": "Operación no especificada."}, status=400)
 
-            id_pedido = int(id_pedido)
-            id_chofer = int(id_chofer)
+        # Crear asignación auto-chofer
+        if operation == "asignar_auto":
+            try:
+                id_chofer = request.POST.get("id_chofer")
+                patente = request.POST.get("patente")
+                turno = request.POST.get("turno")
 
-            pedido = get_object_or_404(PedidosCliente, id_pedido=id_pedido)
-            chofer_auto = get_object_or_404(ChoferAuto, id_chofer=id_chofer, disponibilidad=True)
+                chofer = get_object_or_404(Chofer, id_chofer=id_chofer)
+                auto = get_object_or_404(Auto, patente=patente)
 
-            viaje = Viaje.objects.create(
-                id_cliente=pedido.id_cliente,
-                dir_salida=pedido.dir_salida,
-                dir_destino=pedido.dir_destino,
-                hora=timezone.now().time(),
-                fecha=timezone.now().date(),
-                id_precio=1,
-                cod_tipo_pago=1,
-                id_remiseria=1,
-                inicio=timezone.now().time(),
-                fin=timezone.now().time(),
-                patente=chofer_auto.patente,
-                estado="En viaje"
-            )
+                ChoferAuto.objects.create(
+                    id_chofer=chofer,
+                    patente=auto,
+                    turno=turno,
+                    disponibilidad=True  # Por defecto disponible
+                )
 
-            pedido.estado_pedido = "Asignado"
-            pedido.save()
-            chofer_auto.disponibilidad = False
-            chofer_auto.save()
+                messages.success(request, f"Auto {auto.patente} asignado a {chofer.nombre}.")
+            except Exception as e:
+                messages.error(request, f"Error al asignar auto: {str(e)}")
+            return redirect("administracion")
 
-            cliente = pedido.id_cliente  # Aquí estás obteniendo el cliente
-            usuario = User.objects.get(email=cliente.correo)
+        # Eliminar asignación auto-chofer
+        elif operation == "eliminar_asignacion":
+            try:
+                id_chofer = request.POST.get("id_chofer")
+                patente = request.POST.get("patente")
 
-            Notificacion.objects.create(
-                usuario=usuario,  # Aquí pasas la instancia de 'User', no el correo
-                mensaje="Tu viaje ha sido asignado, el chofer está en camino."
-            )
+                asignacion = get_object_or_404(ChoferAuto, id_chofer=id_chofer, patente=patente)
+                asignacion.delete()
 
-            # Obtener la lista actualizada de viajes
-            viajes_con_chofer = Viaje.objects.filter(estado="En viaje")
+                messages.success(request, f"Asignación entre {asignacion.id_chofer.nombre} y {asignacion.patente.patente} eliminada.")
+            except Exception as e:
+                messages.error(request, f"Error al eliminar asignación: {str(e)}")
+            return redirect("administracion")
 
-            # Devuelves la respuesta con la lista actualizada
-            return render(request, "base_pedidos.html", {
-                "pedidos": PedidosCliente.objects.filter(estado_pedido="Pendiente"),
-                "choferes": ChoferAuto.objects.filter(disponibilidad=True),
-                "viajes_con_chofer": viajes_con_chofer,
-                "mensaje": "Viaje asignado correctamente."
-            })
+        # Manejar la edición de un auto
+        elif operation == "editar_auto":
+            try:
+                patente = request.POST.get("patente")
+                auto = get_object_or_404(Auto, patente=patente)
 
-        except Exception as e:
-            return JsonResponse({"status": "error", "message": str(e)}, status=500)
+                auto.tipo = request.POST.get("tipo", auto.tipo)
+                auto.anio_modelo = request.POST.get("anio_modelo", auto.anio_modelo)
+                auto.propietario = request.POST.get("propietario", auto.propietario)
+                auto.id_remiseria = request.POST.get("id_remiseria", auto.id_remiseria)
+                if "foto" in request.FILES:
+                    auto.foto = request.FILES["foto"]
+                auto.save()
+
+                messages.success(request, f"Auto {auto.patente} actualizado correctamente.")
+            except Exception as e:
+                messages.error(request, f"Error al actualizar el auto: {str(e)}")
+            return redirect("administracion")
+
+        # Manejar la eliminación de un auto
+        elif operation == "eliminar_auto":
+            try:
+                patente = request.POST.get("patente")
+                auto = get_object_or_404(Auto, patente=patente)
+                auto.delete()
+                messages.success(request, f"Auto {patente} eliminado correctamente.")
+            except Exception as e:
+                messages.error(request, f"Error al eliminar el auto: {str(e)}")
+            return redirect("administracion")
+
+        # Lógica original para asignar pedidos
+        elif operation == "asignar_pedido":
+            try:
+                id_pedido = request.POST.get("id_pedido")
+                id_chofer = request.POST.get("id_chofer")
+
+                if not id_pedido or not id_chofer:
+                    return JsonResponse({"status": "error", "message": "Datos incompletos."}, status=400)
+
+                id_pedido = int(id_pedido)
+                id_chofer = int(id_chofer)
+
+                pedido = get_object_or_404(PedidosCliente, id_pedido=id_pedido)
+                chofer_auto = get_object_or_404(ChoferAuto, id_chofer=id_chofer, disponibilidad=True)
+
+                viaje = Viaje.objects.create(
+                    id_cliente=pedido.id_cliente,
+                    dir_salida=pedido.dir_salida,
+                    dir_destino=pedido.dir_destino,
+                    hora=timezone.now().time(),
+                    fecha=timezone.now().date(),
+                    id_precio=1,
+                    cod_tipo_pago=1,
+                    id_remiseria=1,
+                    inicio=timezone.now().time(),
+                    fin=timezone.now().time(),
+                    patente=chofer_auto.patente,
+                    estado="En viaje"
+                )
+
+                pedido.estado_pedido = "Asignado"
+                pedido.save()
+                chofer_auto.disponibilidad = False
+                chofer_auto.save()
+
+                cliente = pedido.id_cliente
+                usuario = User.objects.get(email=cliente.correo)
+
+                Notificacion.objects.create(
+                    usuario=usuario,
+                    mensaje="Tu viaje ha sido asignado, el chofer está en camino."
+                )
+
+                messages.success(request, "Pedido asignado correctamente.")
+                return redirect("administracion")
+
+            except Exception as e:
+                return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
+        # Crear chofer
+        elif operation == "crear_chofer":
+            try:
+                nombre = request.POST.get("nombre")
+                apellido = request.POST.get("apellido")
+                nro_tel = request.POST.get("nro_tel")
+                licencia = request.FILES.get("licencia")
+                foto = request.FILES.get("foto")  # Nuevo campo
+
+                Chofer.objects.create(
+                    nombre=nombre,
+                    apellido=apellido,
+                    nro_tel=nro_tel,
+                    licencia=licencia,
+                    foto=foto
+                )
+                messages.success(request, "Chofer creado correctamente.")
+            except Exception as e:
+                messages.error(request, f"Error al crear el chofer: {str(e)}")
+            return redirect("administracion")
+
+        # Editar chofer
+        elif operation == "editar_chofer":
+            try:
+                id_chofer = request.POST.get("id_chofer")
+                chofer = get_object_or_404(Chofer, id_chofer=id_chofer)
+
+                chofer.nombre = request.POST.get("nombre", chofer.nombre)
+                chofer.apellido = request.POST.get("apellido", chofer.apellido)
+                chofer.nro_tel = request.POST.get("nro_tel", chofer.nro_tel)
+
+                if "cambiar_licencia" in request.POST and "licencia" in request.FILES:
+                    chofer.licencia = request.FILES.get("licencia")
+
+                if "cambiar_foto" in request.POST and "foto" in request.FILES:
+                    chofer.foto = request.FILES.get("foto")
+
+                chofer.save()
+                messages.success(request, f"Chofer {chofer.nombre} actualizado correctamente.")
+            except Exception as e:
+                messages.error(request, f"Error al actualizar el chofer: {str(e)}")
+            return redirect("administracion")
+
+                # Eliminar chofer
+        elif operation == "eliminar_chofer":
+            try:
+                id_chofer = request.POST.get("id_chofer")
+                chofer = get_object_or_404(Chofer, id_chofer=id_chofer)
+                chofer.delete()
+                messages.success(request, f"Chofer eliminado correctamente.")
+            except Exception as e:
+                messages.error(request, f"Error al eliminar el chofer: {str(e)}")
+            return redirect("administracion")
+
+        # Asignar auto a chofer
+        elif operation == "asignar_auto":
+            try:
+                patente = request.POST.get("patente")
+                id_chofer = request.POST.get("id_chofer")
+                turno = request.POST.get("turno")
+
+                if not patente or not id_chofer:
+                    return JsonResponse({"status": "error", "message": "Datos incompletos para la asignación."}, status=400)
+
+                auto = get_object_or_404(Auto, patente=patente)
+                chofer = get_object_or_404(Chofer, id_chofer=id_chofer)
+
+                ChoferAuto.objects.create(
+                    patente=auto,
+                    id_chofer=chofer,
+                    turno=turno,
+                    disponibilidad=True
+                )
+                messages.success(request, f"Auto {auto.patente} asignado a {chofer.nombre} {chofer.apellido} correctamente.")
+            except Exception as e:
+                messages.error(request, f"Error al asignar el auto: {str(e)}")
+            return redirect("administracion")
+
+        # Eliminar asignación de auto
+        elif operation == "eliminar_asignacion_auto":
+            try:
+                patente = request.POST.get("patente")
+                id_chofer = request.POST.get("id_chofer")
+
+                if not patente or not id_chofer:
+                    return JsonResponse({"status": "error", "message": "Datos incompletos para la eliminación de asignación."}, status=400)
+
+                chofer_auto = get_object_or_404(ChoferAuto, patente=patente, id_chofer=id_chofer)
+                chofer_auto.delete()
+                messages.success(request, f"Asignación del auto {patente} para el chofer con ID {id_chofer} eliminada correctamente.")
+            except Exception as e:
+                messages.error(request, f"Error al eliminar la asignación: {str(e)}")
+            return redirect("administracion")
+        
+        
+        elif operation == "eliminar_viaje":
+            try:
+                id_viaje = request.POST.get("id_viaje")
+                viaje = get_object_or_404(Viaje, id_viaje=id_viaje)
+                viaje.delete()
+                messages.success(request, f"Viaje con ID {id_viaje} eliminado correctamente.")
+            except Exception as e:
+                messages.error(request, f"Error al eliminar el viaje: {str(e)}")
+            return redirect("administracion")
+            
+        # Si la operación no es válida
+        else:
+            return JsonResponse({"status": "error", "message": "Operación desconocida."}, status=400)    
+
+
+
+
+
 
 @base_required
 def base_pedidos(request):
-    # Lógica de la vista para la página "base_pedidos"
-    return render(request, 'base_pedidos.html')
+    # Recuperar autos registrados
+    autos = Auto.objects.all()
+
+    # Pasar los autos al template
+    return render(request, 'base_pedidos.html', {'autos': autos})
+
 
 
 def finalizar_viaje(request, id_viaje):
@@ -499,3 +714,147 @@ def viaje(request):
         return render(request, 'viaje.html', {'error': "No se encontró información del chofer."})
     except Exception as e:
         return render(request, 'viaje.html', {'error': str(e)})
+    
+@login_required  
+def obtener_api_key(request):
+    return JsonResponse({"api_key": settings.ORS_API_KEY})
+
+
+#AUTOSSSSSSSS
+# Listar autos (Read)
+
+def listar_autos(request):
+    autos = Auto.objects.all()
+    remiserias = Remiseria.objects.all()  # Obtener todas las remiserías
+    return render(request, 'autos/listar_autos.html', {
+        'autos': autos,
+        'remiserias': remiserias
+    })
+
+
+
+# Crear un nuevo auto (Create)
+from django.contrib import messages
+
+def crear_auto(request):
+    if request.method == 'POST':
+        try:
+            patente = request.POST['patente']
+            tipo = request.POST['tipo']
+            anio_modelo = request.POST['anio_modelo']
+            propietario = request.POST['propietario']
+            vtv = request.POST['vtv']
+            venc_patente = request.POST['venc_patente']
+            id_remiseria = request.POST['id_remiseria']
+            foto = request.FILES.get('foto', None)
+
+            Auto.objects.create(
+                patente=patente,
+                tipo=tipo,
+                anio_modelo=anio_modelo,
+                propietario=propietario,
+                vtv=vtv,
+                venc_patente=venc_patente,
+                id_remiseria=id_remiseria,
+                foto=foto
+            )
+            messages.success(request, "Auto agregado correctamente.")
+        except Exception as e:
+            messages.error(request, f"No se pudo agregar el auto: {str(e)}")
+
+        # Volvemos a cargar los datos necesarios para base_pedidos
+        pedidos_pendientes = PedidosCliente.objects.filter(estado_pedido="Pendiente")
+        choferes_disponibles = ChoferAuto.objects.filter(disponibilidad=True)
+        viajes_en_viaje = Viaje.objects.filter(estado="En viaje")
+        autos = Auto.objects.all()
+        remiserias = Remiseria.objects.all()
+
+        return render(request, "base_pedidos.html", {
+            "pedidos": pedidos_pendientes,
+            "choferes": choferes_disponibles,
+            "viajes_en_viaje": viajes_en_viaje,
+            "autos": autos,
+            "remiserias": remiserias,
+        })
+
+
+def editar_auto(request, patente):
+    auto = get_object_or_404(Auto, patente=patente)  # Obtiene el auto o lanza un 404 si no existe
+    if request.method == 'POST':
+        try:
+            # Actualizar los datos enviados en el formulario
+            auto.tipo = request.POST.get('tipo', auto.tipo)
+            auto.anio_modelo = request.POST.get('anio_modelo', auto.anio_modelo)
+            auto.propietario = request.POST.get('propietario', auto.propietario)
+            auto.id_remiseria = request.POST.get('id_remiseria', auto.id_remiseria)
+
+            # Solo actualizar la foto si el switch está activado
+            if "cambiar_foto" in request.POST and "foto" in request.FILES:
+                auto.foto = request.FILES["foto"]
+
+            # Guardar los cambios
+            auto.save()
+            messages.success(request, f"Auto {auto.patente} actualizado correctamente.")
+        except Exception as e:
+            messages.error(request, f"Error al actualizar el auto: {str(e)}")
+        
+        # Redirigir a la página principal después de procesar
+        return redirect('administracion')
+
+    # Si no es un método POST, muestra un error o redirige
+    messages.error(request, "Método no permitido para esta operación.")
+    return redirect('administracion')
+
+    
+
+def eliminar_auto(request, patente):
+    auto = get_object_or_404(Auto, patente=patente)  # Recupera el auto o lanza un 404
+    if request.method == 'POST':
+        try:
+            auto.delete()  # Elimina el auto de la base de datos
+            messages.success(request, f"Auto {patente} eliminado correctamente.")
+        except Exception as e:
+            messages.error(request, f"Error al eliminar el auto: {str(e)}")
+        return redirect('administracion')
+
+    # Si no es POST, redirige con un mensaje de error
+    messages.error(request, "Método no permitido para esta operación.")
+    return redirect('administracion')
+
+
+
+@login_required
+def crear_asignacion(request):
+    if request.method == "POST":
+        id_chofer = request.POST.get("id_chofer")
+        patente = request.POST.get("patente")
+        turno = request.POST.get("turno")
+        disponibilidad = request.POST.get("disponibilidad") == "True"
+
+        try:
+            chofer = get_object_or_404(Chofer, id_chofer=id_chofer)
+            auto = get_object_or_404(Auto, patente=patente)
+
+            ChoferAuto.objects.create(
+                id_chofer=chofer,
+                patente=auto,
+                turno=turno,
+                disponibilidad=disponibilidad
+            )
+            messages.success(request, "Asignación creada correctamente.")
+        except Exception as e:
+            messages.error(request, f"Error al crear la asignación: {str(e)}")
+
+        return redirect("administracion")
+
+
+@login_required
+def eliminar_asignacion(request, id_chofer, patente):
+    try:
+        asignacion = get_object_or_404(ChoferAuto, id_chofer=id_chofer, patente=patente)
+        asignacion.delete()
+        messages.success(request, "Asignación eliminada correctamente.")
+    except Exception as e:
+        messages.error(request, f"Error al eliminar la asignación: {str(e)}")
+
+    return redirect("administracion")

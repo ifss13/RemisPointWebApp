@@ -51,7 +51,8 @@ class Chofer(models.Model):
     nombre = models.CharField(max_length=100)
     apellido = models.CharField(max_length=100)
     nro_tel = models.CharField(max_length=20)
-    licencia = models.CharField(max_length=50)
+    licencia = models.ImageField(upload_to='choferes/licencias/', blank=True, null=True)
+    foto = models.ImageField(upload_to='choferes/foto/', blank=True, null=True)
 
     class Meta:
         db_table = 'Chofer'
@@ -65,7 +66,7 @@ class Chofer(models.Model):
 class Auto(models.Model):
     patente = models.CharField(primary_key=True, max_length=50)
     tipo = models.CharField(max_length=100)  # Tipo de auto
-    foto = models.CharField(max_length=100)  # Foto del auto
+    foto = models.ImageField(upload_to='autos/', blank=True, null=True)
     anio_modelo = models.IntegerField()  # Año del modelo
     propietario = models.CharField(max_length=100)  # Propietario del auto
     vtv = models.DateField()  # Fecha de vencimiento de VTV
@@ -90,6 +91,33 @@ class ChoferAuto(models.Model):
         managed = False  # Evita que Django intente gestionar la tabla
         unique_together = (("patente", "id_chofer"),)  # Define la clave primaria compuesta
 
+# Modelo para Tipo de Pago
+class TipoPago(models.Model):
+    cod_tipo_pago = models.IntegerField(primary_key=True)  # Clave primaria
+    descripcion = models.CharField(max_length=255)  # Descripción del tipo de pago
+
+    class Meta:
+        db_table = "TipoPago"  # Nombre de la tabla en la base de datos
+
+    def __str__(self):
+        return self.descripcion
+
+
+# Modelo para Precio
+class Precio(models.Model):
+    id_precio = models.IntegerField(primary_key=True)  # Clave primaria
+    descripcion = models.CharField(max_length=255)  # Descripción de la tarifa
+    kmdesde = models.FloatField()  # Kilómetro inicial
+    kmhasta = models.FloatField()  # Kilómetro final
+    precio = models.IntegerField()  # Monto del precio (el que se mostrará en la tabla)
+    interes = models.IntegerField()  # Porcentaje de interés
+
+    class Meta:
+        db_table = "Precio"  # Nombre de la tabla en la base de datos
+
+    def __str__(self):
+        return f"${self.precio}"
+
 # Tabla Viajes
 class Viaje(models.Model):
     id_viaje = models.AutoField(primary_key=True)
@@ -102,8 +130,8 @@ class Viaje(models.Model):
     dir_destino = models.CharField(max_length=255)
     hora = models.TimeField()
     fecha = models.DateField()
-    id_precio = models.IntegerField()  # Relación con tabla de precios
-    cod_tipo_pago = models.CharField(max_length=50)  # Código de tipo de pago
+    id_precio = models.ForeignKey(Precio, on_delete=models.CASCADE, db_column="id_precio")
+    cod_tipo_pago = models.ForeignKey(TipoPago, on_delete=models.CASCADE, db_column="cod_tipo_pago")
     id_remiseria = models.CharField(max_length=100)  # Remisería
     inicio = models.TimeField()  # Hora de inicio del viaje
     fin = models.TimeField()  # Hora de fin del viaje
@@ -126,7 +154,7 @@ class Remiseria(models.Model):
     nombre = models.CharField(max_length=255)  # Ajusta el max_length según el tamaño de la cadena
     telefono = models.CharField(max_length=255)  # Ajusta el max_length según el tamaño de la cadena
     password = models.CharField(max_length=255)  # Para almacenar contraseñas (deberías considerar usar Django's User model o algún hash para seguridad)
-    foto = models.CharField(max_length=255, blank=True, null=True)  # Ruta o URL de la foto
+    foto = models.ImageField(upload_to='remiserias/', blank=True, null=True)
     esta_abierta = models.BooleanField(default=True)
 
     def __str__(self):

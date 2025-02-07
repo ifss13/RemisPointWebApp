@@ -1,0 +1,117 @@
+<div class="container mt-4">
+    <h2>Registro de Viajes</h2>
+    
+    <!-- Filtros -->
+    <div class="row mb-3">
+        <div class="col-md-3">
+            <label for="filtroFecha">Fecha:</label>
+            <input type="date" id="filtroFecha" class="form-control" onchange="filtrarViajes()">
+        </div>
+        <div class="col-md-3">
+            <label for="filtroCliente">Cliente:</label>
+            <input type="text" id="filtroCliente" class="form-control" placeholder="Buscar por nombre..." onkeyup="filtrarViajes()">
+        </div>
+        <div class="col-md-3">
+            <label for="filtroPatente">Patente:</label>
+            <input type="text" id="filtroPatente" class="form-control" placeholder="Buscar por patente..." onkeyup="filtrarViajes()">
+        </div>
+        <div class="col-md-3">
+            <label for="filtroChofer">Chofer:</label>
+            <input type="text" id="filtroChofer" class="form-control" placeholder="Buscar por chofer..." onkeyup="filtrarViajes()">
+        </div>
+        <div class="col-md-3">
+            <label for="filtroEstado">Estado:</label>
+            <select id="filtroEstado" class="form-control" onchange="filtrarViajes()">
+                <option value="Todos">Todos</option>
+                <option value="En viaje">En viaje</option>
+                <option value="Finalizado">Finalizado</option>
+                <option value="Cancelado">Cancelado</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label for="filtroPago">Tipo de Pago:</label>
+            <select id="filtroPago" class="form-control" onchange="filtrarViajes()">
+                <option value="Todos">Todos</option>
+                {% for pago in tipopago %}
+                    <option value="{{ pago.descripcion }}">{{ pago.descripcion }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+    
+    <!-- Tabla de Viajes -->
+    <table class="table table-striped" id="tablaViajes">
+        <thead>
+            <tr>
+                <th>ID Viaje</th>
+                <th>Fecha</th>
+                <th>Cliente</th>
+                <th>Chofer</th>
+                <th>Auto</th>
+                <th>Precio</th>
+                <th>Dirección Salida</th>
+                <th>Dirección Destino</th>
+                <th>Tipo de Pago</th>
+                <th>Estado</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for viaje in viajes_registrados %}
+            <tr>
+                <td>{{ viaje.id_viaje }}</td>
+                <td>{{ viaje.fecha|date:"d/m/Y" }}</td>
+                <td>{{ viaje.id_cliente.nombre }} {{ viaje.id_cliente.apellido }}</td>
+                <td>
+                    {% for chofer_auto in viaje.patente.choferauto_set.all %}
+                        {{ chofer_auto.id_chofer.nombre }} {{ chofer_auto.id_chofer.apellido }}
+                    {% endfor %}
+                </td>
+                <td>{{ viaje.patente.patente }} - {{ viaje.patente.tipo }}</td>
+                <td> ${{ viaje.id_precio.precio }}</td>  <!-- Muestra el precio correcto -->
+                <td>{{ viaje.dir_salida }}</td>
+                <td>{{ viaje.dir_destino }}</td>
+                <td>{{ viaje.cod_tipo_pago.descripcion }}</td>  <!-- Muestra la descripción del tipo de pago -->
+                <td>{{ viaje.estado }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+    function filtrarViajes() {
+        let fechaFiltro = document.getElementById("filtroFecha").value;
+        let clienteFiltro = document.getElementById("filtroCliente").value.toLowerCase();
+        let patenteFiltro = document.getElementById("filtroPatente").value.toLowerCase();
+        let choferFiltro = document.getElementById("filtroChofer").value.toLowerCase();
+        let estadoFiltro = document.getElementById("filtroEstado").value;
+        let pagoFiltro = document.getElementById("filtroPago").value;
+
+        // ✅ Convierte fecha de YYYY-MM-DD a DD/MM/YYYY para la comparación
+        if (fechaFiltro) {
+            let partesFecha = fechaFiltro.split("-");
+            fechaFiltro = `${partesFecha[2]}/${partesFecha[1]}/${partesFecha[0]}`;
+        }
+
+        let filas = document.querySelectorAll("#tablaViajes tbody tr");
+        filas.forEach(fila => {
+            let fecha = fila.cells[1].innerText.trim(); // Fecha en la tabla ya formateada como DD/MM/YYYY
+            let cliente = fila.cells[2].innerText.toLowerCase();
+            let chofer = fila.cells[3].innerText.toLowerCase();
+            let patente = fila.cells[4].innerText.toLowerCase();
+            let estado = fila.cells[9].innerText.trim();
+            let tipoPago = fila.cells[8].innerText.trim();
+
+            let mostrar = true;
+            if (fechaFiltro && fecha !== fechaFiltro) mostrar = false;
+            if (clienteFiltro && !cliente.includes(clienteFiltro)) mostrar = false;
+            if (patenteFiltro && !patente.includes(patenteFiltro)) mostrar = false;
+            if (choferFiltro && !chofer.includes(choferFiltro)) mostrar = false;
+            if (estadoFiltro !== "Todos" && estado !== estadoFiltro) mostrar = false;
+            if (pagoFiltro !== "Todos" && tipoPago !== pagoFiltro) mostrar = false;
+
+            fila.style.display = mostrar ? "" : "none";
+        });
+    }
+</script>
+

@@ -13,7 +13,7 @@ urlpatterns = [
     path('verificar_sesion/', views.verificar_sesion, name='verificar_sesion'),
     path('geocodificar-inversa/', views.geocodificar_inversa, name='geocodificar_inversa'),
     path("pedidos/", views.pedidos, name="pedidos"),
-    path('asignar-pedidos/', views.asignar_pedidos, name='asignar_pedidos'),  # Ruta para la página de asignación,
+    path('administracion/', views.asignar_pedidos, name='administracion'),  # Ruta para la página de asignación,
     path('finalizar-viaje/<int:id_viaje>/', views.finalizar_viaje, name='finalizar_viaje'),
     path('cuenta/', views.panel_cuenta, name='panel_cuenta'),
     path('cuenta/cambiar-contrasena/', views.cambiar_contrasena, name='cambiar_contrasena'),
@@ -25,4 +25,16 @@ urlpatterns = [
     path('remiseria/', views.remiserias, name='remiseria'),
     path('viaje/', views.viaje, name='viaje'),
     path('verificar_pedido/<int:pedido_id>/', views.verificar_estado_pedido, name='verificar_pedido'),
+    path('obtener-api-key/', views.obtener_api_key, name='obtener_api_key'),
+    path('autos/', views.listar_autos, name='listar_autos'),  # Listar autos
+    path('autos/crear/', views.crear_auto, name='crear_auto'),  # Crear auto
+    path('autos/editar/<str:patente>/', views.editar_auto, name='editar_auto'),
+    path('autos/eliminar/<str:patente>/', views.eliminar_auto, name='eliminar_auto'),
+    path('choferes/', views.asignar_pedidos, name='listar_choferes'),  # Reutilizamos la vista de asignar_pedidos
+    path('choferes/crear/', views.asignar_pedidos, name='crear_chofer'),
+    path('choferes/editar/<int:id_chofer>/', views.asignar_pedidos, name='editar_chofer'),
+    path('choferes/eliminar/<int:id_chofer>/', views.asignar_pedidos, name='eliminar_chofer'),
+    path('asignar-auto/', views.crear_asignacion, name='crear_asignacion'),
+    path('eliminar-asignacion/<int:id_chofer>/<str:patente>/', views.eliminar_asignacion, name='eliminar_asignacion'),
+    
 ]

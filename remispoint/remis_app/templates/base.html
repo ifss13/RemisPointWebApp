@@ -27,14 +27,32 @@
             max-width: 150px;
         }
 
-        /* Asegurarse de que los enlaces activos también sean blancos */
-        .navbar .nav-link.active {
-            color: white !important;
-        }
-
         /* Cambiar el color de la barra de navegación cuando se pasa el ratón */
         .navbar .nav-link:hover {
             color: #f1f1f1 !important; /* Color más claro para el hover */
+        }
+
+        /* Posicionamiento de la campana en versión móvil */
+        @media (max-width: 768px) {
+            #notification-mobile {
+                position: relative;
+                display: inline-block;
+                margin-left: 10px;
+                margin-right: 10px;
+            }
+
+            .dropdown-menu {
+                position: absolute; /* Asegura que el menú se posicione relativo al botón */
+                top: 100%; /* Coloca el menú justo debajo del botón */
+                left: 0; /* Alinea el menú hacia la izquierda */
+                transform: translateX(-10%); /* Ajusta ligeramente hacia la izquierda */
+                width: auto;
+                max-width: 90%; /* Asegura que no exceda el ancho de la pantalla */
+                margin: 0;
+                padding: 10px;
+                box-sizing: border-box; /* Incluye padding en el ancho */
+                overflow-x: hidden; /* Evita el desbordamiento horizontal */
+            }
         }
 
         /* Estilo para el footer */
@@ -48,43 +66,29 @@
             text-align: center;
         }
 
-        /* Establece que el contenido de la página ocupe todo el espacio disponible */
+        /* Estilo responsivo para el contenido */
         .content-wrapper {
-            min-height: 100vh; /* Asegura que el contenido ocupe al menos toda la altura de la ventana */
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
         }
 
-        /* Asegura que el footer esté en la parte inferior */
         .content-wrapper > .content {
             flex: 1;
         }
 
-        .navbar .nav-link.btn-iniciar-sesion {
-            background-color: #6c757d; /* Color gris */
-            color: white;  /* Texto blanco */
-            border: none;  /* Elimina el borde */
-            padding: 10px 20px; /* Añadir un poco de espaciado */
-            border-radius: 5px; /* Bordes redondeados */
-        }
-
-        .navbar .nav-link.btn-iniciar-sesion:hover {
-            background-color: #5a6268; 
-        }
-
         .btn-white {
             background-color: #fc7c44;
-            color: rgb(255, 255, 255);
-            border: 1px solid #ccc; 
+            color: white;
+            border: 1px solid #ccc;
         }
 
         .btn-white:hover {
             background-color: #fc7c44;
-            color: rgb(255, 255, 255);
+            color: white;
             border: 1px solid #ccc;
         }
 
-        /* Estilo para las notificaciones */
         #notification-badge {
             position: absolute;
             top: 5px;
@@ -92,100 +96,141 @@
             font-size: 0.75rem;
         }
 
-        .dropdown-menu {
-            width: 100%; /* Hace que ocupe todo el ancho disponible */
-            max-width: 350px; /* Establece un ancho máximo */
-            overflow: auto; /* Añade desplazamiento si es necesario */
-        }
-
+        /* Ajuste del texto dentro de las notificaciones */
         .dropdown-item {
-            white-space: normal;  /* Permite que el texto se ajuste en varias líneas */
-            word-wrap: break-word; /* Rompe las palabras largas */
+            white-space: normal; /* Permite múltiples líneas de texto */
+            word-wrap: break-word; /* Ajusta las palabras largas */
+            font-size: 0.9rem; /* Texto más pequeño por defecto */
+            padding: 5px 10px; /* Espaciado entre los elementos */
+            display: flex;
+            flex-direction: column; /* Coloca el botón debajo del texto */
+            align-items: flex-start; /* Alinea al inicio */
         }
 
-        .dropdown-item button {
-            margin-left: 10px;
+        .dropdown-item .mark-as-read-btn {
+            margin-top: 5px;
             font-size: 0.8rem;
-            padding: 5px 10px;
+            padding: 3px 6px;
         }
+
+        @media (max-width: 768px) {
+            .dropdown-menu {
+                position: absolute; /* Asegura que el menú sea relativo al botón */
+                top: 100%; /* Coloca el menú justo debajo del botón */
+                left: auto; /* Resetea cualquier alineación previa a la izquierda */
+                right: 0; /* Alinea el menú con el borde derecho del botón */
+                transform: translateX(-25%); /* Ajusta la posición ligeramente hacia la izquierda */
+                max-width: calc(100% - 20px); /* Asegura que el menú no exceda el ancho de la pantalla */
+                margin: 0; /* Elimina márgenes externos innecesarios */
+                padding: 10px; /* Espaciado interno */
+                box-sizing: border-box; /* Incluye padding y borde en el ancho total */
+                overflow-x: hidden; /* Evita desbordamientos horizontales */
+            }
+
+            .dropdown-item {
+                font-size: 0.8rem; /* Ajusta el tamaño del texto en móviles */
+                padding: 5px; /* Espaciado más ajustado */
+                display: flex;
+                flex-direction: column; /* Coloca el botón debajo del texto */
+                align-items: flex-start; /* Alinea los elementos al inicio */
+            }
+
+            .dropdown-item .mark-as-read-btn {
+                font-size: 0.7rem; /* Tamaño reducido del botón */
+                padding: 2px 5px; /* Ajuste del espaciado interno */
+                margin-top: 5px; /* Espaciado entre el texto y el botón */
+            }
+        }
+
     </style>
+
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
     <div class="content-wrapper">
         <!-- Barra de navegación -->
         <nav class="navbar navbar-expand-lg">
-            <div class="container-fluid">
-                <!-- Logo de RemisPoint con clase img-fluid para hacerlo responsivo -->
+            <div class="container-fluid d-flex align-items-center justify-content-between">
+                <!-- Logo de RemisPoint -->
                 <a class="navbar-brand" href="#">
                     <img src="{% static 'images/Remis-Point.png' %}" alt="RemisPoint" class="img-fluid">
                 </a>
-
-                <!-- Botón para cambiar entre vistas en dispositivos pequeños -->
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-
-                <!-- Enlaces de navegación -->
+        
+                <!-- Contenedor para campana y botón hamburguesa -->
+                <div class="d-flex align-items-center">
+                    <!-- Campana de notificaciones (solo móvil) -->
+                    <div id="notification-mobile" class="d-lg-none me-2">
+                        <a class="nav-link" href="#" id="notificationsDropdownMobile" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-bell"></i>
+                            <span id="notification-badge-mobile" class="badge bg-danger" style="display: none;">0</span>
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="notificationsDropdownMobile" id="notification-list-mobile">
+                            <!-- Notificaciones cargadas dinámicamente -->
+                        </ul>
+                    </div>
+        
+                    <!-- Botón hamburguesa -->
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                </div>
+        
+                <!-- Contenido del menú -->
                 <div class="collapse navbar-collapse" id="navbarNav">
                     <ul class="navbar-nav d-flex align-items-center">
-                        <!-- Enlace Inicio a la izquierda, al lado del logo -->
+                        <!-- Enlace Inicio -->
                         <li class="nav-item">
                             <a class="nav-link active" href="/">Inicio</a>
                         </li>
-                
+        
                         {% if user.is_authenticated %}
                         <!-- Enlace Realizar Pedido -->
                         <li class="nav-item">
                             <a class="nav-link active" href="/remiseria">Realizar Pedidos</a>
                         </li>
                         {% endif %}
-
+        
                         <li class="nav-item">
                             <a class="nav-link active" href="/">Quienes Somos</a>
                         </li>
-                        
+        
                         <li class="nav-item">
                             <a class="nav-link active" href="/">Contacto</a>
                         </li>
                     </ul>
-
-                    <!-- Enlaces de Registro e Iniciar sesión a la derecha -->
+        
+                    <!-- Campana de notificaciones en escritorio -->
                     <ul class="navbar-nav ms-auto">
-                        {% if user.is_authenticated %}
-                        <!-- Icono de notificaciones -->
-                        <li class="nav-item dropdown" id="notification-item">
-                            <a class="nav-link dropdown-toggle" href="#" id="notificationsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <li class="nav-item dropdown d-none d-lg-block" id="notification-item">
+                            <a class="nav-link dropdown-toggle" href="#" id="notificationsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="fas fa-bell"></i>
-                                <span id="notification-badge" class="badge bg-danger" style="display: none;">0</span> <!-- Muestra el número de notificaciones -->
+                                <span id="notification-badge" class="badge bg-danger" style="display: none;">0</span>
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="notificationsDropdown" id="notification-list">
-                                <!-- Las notificaciones se cargarán aquí con AJAX -->
+                                <!-- Notificaciones cargadas dinámicamente -->
                             </ul>
                         </li>
-                        <!-- Icono de Cuenta -->
+        
+                        {% if user.is_authenticated %}
+                        <!-- Botón Cuenta -->
                         <li class="nav-item">
-                            <a href="{% url 'panel_cuenta' %}">
-                                <button type="button" class="btn btn-white">
-                                    <i class="fas fa-user"></i> Cuenta
-                                </button>
+                            <a href="{% url 'panel_cuenta' %}" class="btn btn-white">
+                                <i class="fas fa-user"></i> Cuenta
                             </a>
                         </li>
-                        <!-- Icono de Cerrar sesión -->
+        
+                        <!-- Botón Cerrar sesión -->
                         <li class="nav-item">
-                            <a href="{% url 'logout' %}">
-                                <button type="button" class="btn btn-white">
-                                    <i class="fas fa-sign-out-alt"></i> Cerrar sesión
-                                </button>
+                            <a href="{% url 'logout' %}" class="btn btn-white">
+                                <i class="fas fa-sign-out-alt"></i> Cerrar sesión
                             </a>
                         </li>
                         {% else %}
-                        <!-- Icono de Login -->
+                        <!-- Botón Iniciar sesión -->
                         <li class="nav-item">
-                            <a href="{% url 'login' %}">
-                                <button type="button" class="btn btn-white">
-                                    <i class="fas fa-sign-in-alt"></i> Iniciar Sesión
-                                </button>
+                            <a href="{% url 'login' %}" class="btn btn-white">
+                                <i class="fas fa-sign-in-alt"></i> Iniciar Sesión
                             </a>
                         </li>
                         {% endif %}
@@ -193,11 +238,11 @@
                 </div>
             </div>
         </nav>
+        
 
         <!-- Contenido de la página -->
         <div class="content">
             {% block content %}
-            <!-- Aquí va el contenido específico de cada página -->
             {% endblock %}
         </div>
 
@@ -212,50 +257,60 @@
 
     <!-- Script para las notificaciones -->
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const notificationIcon = document.getElementById('notificationsDropdown');
+        document.addEventListener('DOMContentLoaded', function () {
             const notificationBadge = document.getElementById('notification-badge');
             const notificationList = document.getElementById('notification-list');
-        
-            // Función para cargar las notificaciones
+            const notificationBadgeMobile = document.getElementById('notification-badge-mobile');
+            const notificationListMobile = document.getElementById('notification-list-mobile');
+    
+            // Función para cargar notificaciones
             function cargarNotificaciones() {
                 fetch('/obtener_notificaciones/')
                     .then(response => response.json())
                     .then(data => {
                         if (data.notificaciones) {
-                            // Limpiar la lista actual de notificaciones
-                            notificationList.innerHTML = '';
-        
-                            // Mostrar las notificaciones en la lista desplegable
-                            data.notificaciones.forEach(notificacion => {
-                                const li = document.createElement('li');
-                                li.classList.add('dropdown-item');
-                                li.textContent = `${notificacion.mensaje} - ${notificacion.fecha}`;
-        
-                                // Crear el botón para marcar como leída
-                                const btnLeida = document.createElement('button');
-                                btnLeida.textContent = 'Marcar como leída';
-                                btnLeida.classList.add('btn', 'btn-sm', 'btn-success');
-                                btnLeida.addEventListener('click', function(event) {
-                                    marcarComoLeida(notificacion.id, event.target);
-                                });
-        
-                                li.appendChild(btnLeida);
-                                notificationList.appendChild(li);
-                            });
-        
-                            // Actualizar el badge con el número de notificaciones
-                            notificationBadge.textContent = data.notificaciones.length;
-                            notificationBadge.style.display = data.notificaciones.length > 0 ? 'inline' : 'none';
+                            // Actualizar el badge y lista de escritorio
+                            actualizarNotificaciones(data.notificaciones, notificationBadge, notificationList);
+    
+                            // Actualizar el badge y lista de móvil
+                            actualizarNotificaciones(data.notificaciones, notificationBadgeMobile, notificationListMobile);
                         }
                     })
                     .catch(error => console.error('Error al cargar notificaciones:', error));
             }
-        
-            // Función para marcar como leída
-            function marcarComoLeida(notificacionId, button) {
+    
+            // Función para actualizar las notificaciones (común a escritorio y móvil)
+            function actualizarNotificaciones(notificaciones, badgeElement, listElement) {
+                const count = notificaciones.length;
+    
+                // Actualizar el badge
+                badgeElement.textContent = count > 0 ? count : '';
+                badgeElement.style.display = count > 0 ? 'inline' : 'none';
+    
+                // Actualizar la lista de notificaciones
+                listElement.innerHTML = '';
+                notificaciones.forEach(notificacion => {
+                    const li = document.createElement('li');
+                    li.classList.add('dropdown-item');
+                    
+                    const text = document.createElement('span');
+                    text.textContent = `${notificacion.mensaje} - ${notificacion.fecha}`;
+
+                    const button = document.createElement('button');
+                    button.classList.add('btn', 'btn-sm', 'btn-success', 'mark-as-read-btn');
+                    button.textContent = 'Marcar como leída';
+                    button.addEventListener('click', () => marcarComoLeida(notificacion.id, badgeElement));
+
+                    li.appendChild(text);
+                    li.appendChild(button);
+
+                    listElement.appendChild(li);
+                });
+            }
+    
+            // Marcar como leída
+            function marcarComoLeida(notificacionId, badgeElement) {
                 const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-        
                 fetch(`/marcar_como_leida/${notificacionId}/`, {
                     method: 'POST',
                     headers: {
@@ -267,35 +322,23 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        const notificationItem = button.closest('li');
-                        notificationItem.remove();
-        
-                        const currentCount = parseInt(notificationBadge.textContent, 10) || 0;
-                        notificationBadge.textContent = currentCount > 1 ? currentCount - 1 : '';
-                        if (currentCount - 1 <= 0) {
-                            notificationBadge.style.display = 'none';
-                        }
+                        // Actualizar la lista de notificaciones
+                        cargarNotificaciones();
                     } else {
                         console.error('Error al marcar como leída:', data.error);
                     }
                 })
                 .catch(error => console.error('Error al hacer la solicitud:', error));
             }
-        
-            // Actualizar las notificaciones automáticamente cada 5 segundos
+
+            // Cargar notificaciones cada 5 segundos
             setInterval(cargarNotificaciones, 5000);
-        
-            // Cargar notificaciones al hacer clic en el ícono
-            notificationIcon.addEventListener('click', function() {
-                cargarNotificaciones();
-            });
+
+            // Cargar notificaciones al iniciar
+            cargarNotificaciones();
         });
     </script>
-    
-    
 </body>
 <meta name="csrf-token" content="{% csrf_token %}">
 </html>
-
-
 

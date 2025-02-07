@@ -1,115 +1,240 @@
 {% extends "base.html" %}
+
 {% block content %}
 <div class="container mt-5">
-    <h2>Asignar Pedidos</h2>
-    <div class="row">
-        <!-- Pedidos Pendientes -->
-        <div class="col-md-6">
-            <h4>Pedidos Pendientes</h4>
+    <h2>Panel de Control</h2>
+
+    <!-- Navegación de pestañas -->
+    <ul class="nav nav-tabs" id="controlTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="asignar-pedidos-tab" data-bs-toggle="tab" data-bs-target="#asignar-pedidos" type="button" role="tab" aria-controls="asignar-pedidos" aria-selected="true">Asignar Pedidos</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="choferes-tab" data-bs-toggle="tab" data-bs-target="#choferes" type="button" role="tab" aria-controls="choferes" aria-selected="false">Choferes</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="autos-tab" data-bs-toggle="tab" data-bs-target="#autos" type="button" role="tab" aria-controls="autos" aria-selected="false">Autos</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="asignar-auto-tab" data-bs-toggle="tab" data-bs-target="#asignar-auto" type="button" role="tab" aria-controls="asignar-auto" aria-selected="false">Asignar Auto</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="registro-viajes-tab" data-bs-toggle="tab" data-bs-target="#registro-viajes" type="button" role="tab" aria-controls="registro-viajes" aria-selected="false">Registro Viajes</button>
+        </li>
+    </ul>
+    <!-- Contenido de las pestañas -->
+    <div class="tab-content mt-4" id="controlTabsContent">
+        <!-- Pestaña Asignar Pedidos -->
+        <div class="tab-pane fade show active" id="asignar-pedidos" role="tabpanel" aria-labelledby="asignar-pedidos-tab">
+            <div class="row">
+                <!-- Pedidos Pendientes -->
+                <div class="col-md-6">
+                    <h4>Pedidos Pendientes</h4>
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Cliente</th>
+                                <th>Salida</th>
+                                <th>Destino</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pedido in pedidos %}
+                            <tr>
+                                <td>{{ pedido.id_pedido }}</td>
+                                <td>{{ pedido.id_cliente.nombre }}</td>
+                                <td>{{ pedido.dir_salida }}</td>
+                                <td>{{ pedido.dir_destino }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Choferes Disponibles -->
+                <div class="col-md-6">
+                    <h4>Choferes Disponibles</h4>
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre</th>
+                                <th>Auto</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for chofer in choferes %}
+                            <tr>
+                                <td>{{ chofer.id_chofer.id_chofer }}</td>
+                                <td>{{ chofer.id_chofer.nombre }} {{ chofer.id_chofer.apellido }}</td>
+                                <td>{{ chofer.patente }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <br><br>
+            <!-- Formulario para asignar pedido a chofer -->
+            <form id="asignarPedidoForm" method="POST" action="{% url 'administracion' %}">
+                {% csrf_token %}
+                <input type="hidden" name="operation" value="asignar_pedido">
+                <label for="pedido">Seleccionar Pedido:</label>
+                <select name="id_pedido" id="idPedido">
+                    {% for pedido in pedidos %}
+                        <option value="{{ pedido.id_pedido }}">
+                            {{ pedido.id_cliente.nombre }} - {{ pedido.dir_salida }} -> {{ pedido.dir_destino }}
+                        </option>
+                    {% endfor %}
+                </select>
+
+                <label for="chofer">Seleccionar Chofer:</label>
+                <select name="id_chofer" id="id_chofer">
+                    {% for chofer in choferes %}
+                        <option value="{{ chofer.id_chofer.id_chofer }}">
+                            {{ chofer.id_chofer.nombre }} - {{ chofer.patente }}
+                        </option>
+                    {% endfor %}
+                </select>
+
+                <button type="submit">Asignar</button>
+            </form>
+
+            <br>
             <table class="table table-striped">
                 <thead>
                     <tr>
                         <th>ID</th>
                         <th>Cliente</th>
+                        <th>Chofer</th>
                         <th>Salida</th>
                         <th>Destino</th>
+                        <th>Estado</th>
+                        <th>Acción</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for pedido in pedidos %}
+                    {% for viaje in viajes_en_viaje %}
                     <tr>
-                        <td>{{ pedido.id_pedido }}</td>
-                        <td>{{ pedido.id_cliente.nombre }}</td>
-                        <td>{{ pedido.dir_salida }}</td>
-                        <td>{{ pedido.dir_destino }}</td>
+                        <td>{{ viaje.id_viaje }}</td>
+                        <td>{{ viaje.id_cliente.nombre }}</td>
+                        <td>{{ viaje.patente }}</td>
+                        <td>{{ viaje.dir_salida }}</td>
+                        <td>{{ viaje.dir_destino }}</td>
+                        <td>{{ viaje.estado }}</td>
+                        <td>
+                            {% if viaje.estado == "En viaje" %}
+                                <button onclick="finalizarViaje('{{ viaje.id_viaje }}')">Finalizar</button>
+                            {% endif %}
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
 
-        <!-- Choferes Disponibles -->
-        <div class="col-md-6">
-            <h4>Choferes Disponibles</h4>
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Nombre</th>
-                        <th>Auto</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for chofer in choferes %}
-                    <tr>
-                        <td>{{ chofer.id_chofer.id_chofer }}</td>
-                        <td>{{ chofer.id_chofer.nombre }} {{ chofer.id_chofer.apellido }}</td>
-                        <td>{{ chofer.patente }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <!-- Pestaña Choferes -->
+        <div class="tab-pane fade" id="choferes" role="tabpanel" aria-labelledby="choferes-tab">
+            <h4>Choferes</h4>
+            {% include "choferes/listar_choferes.html" %}
         </div>
+
+        <!-- Pestaña Autos -->
+        <div class="tab-pane fade" id="autos" role="tabpanel" aria-labelledby="autos-tab">
+            <h4>Autos</h4>
+            {% include "autos/listar_autos.html" %}
+        </div>
+
+        <div class="tab-pane fade" id="asignar-chofer" role="tabpanel" aria-labelledby="asignar-chofer-tab">
+            <h4>Registro de Viajes</h4>
+            <p>Contenido del registro de viajes pendiente.</p>
+        </div>
+
+
+        <!-- Contenido de las pestañas -->
+        <div class="tab-content mt-4" id="controlTabsContent">
+            <!-- Pestaña Asignar Auto -->
+            <div class="tab-pane fade" id="asignar-auto" role="tabpanel" aria-labelledby="asignar-auto-tab">
+                <h4>Asignar Auto a Chofer</h4>
+                <form method="POST" action="{% url 'administracion' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="operation" value="asignar_auto">
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="id_chofer" class="form-label">Chofer</label>
+                            <select class="form-select" id="id_chofer" name="id_chofer" required>
+                                <option value="" disabled selected>Seleccione un chofer</option>
+                                {% for chofer in choferes_list %}
+                                <option value="{{ chofer.id_chofer }}">{{ chofer.nombre }} {{ chofer.apellido }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="patente" class="form-label">Auto</label>
+                            <select class="form-select" id="patente" name="patente" required>
+                                <option value="" disabled selected>Seleccione un auto</option>
+                                {% for auto in autos %}
+                                <option value="{{ auto.patente }}">{{ auto.patente }} - {{ auto.tipo }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="turno" class="form-label">Turno</label>
+                            <input type="text" class="form-control" id="turno" name="turno" placeholder="Turno (mañana, tarde, noche)" required>
+                        </div>
+                    </div>
+
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-primary">Asignar Auto</button>
+                    </div>
+                </form>
+
+                <hr>
+
+                <h4>Asignaciones Existentes</h4>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Chofer</th>
+                            <th>Auto</th>
+                            <th>Turno</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for asignacion in asignaciones %}
+                        <tr>
+                            <td>{{ asignacion.id_chofer.nombre }} {{ asignacion.id_chofer.apellido }}</td>
+                            <td>{{ asignacion.patente.patente }} - {{ asignacion.patente.tipo }}</td>
+                            <td>{{ asignacion.turno }}</td>
+                            <td>
+                                <form method="POST" action="{% url 'administracion' %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="operation" value="eliminar_asignacion_auto">
+                                    <input type="hidden" name="id_chofer" value="{{ asignacion.id_chofer.id_chofer }}">
+                                    <input type="hidden" name="patente" value="{{ asignacion.patente.patente }}">
+                                    <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- Pestaña Registro de Viajes -->
+        <div class="tab-pane fade" id="registro-viajes" role="tabpanel" aria-labelledby="registro-viajes-tab">
+            
+            {% include "registro_viajes/registro_viajes.html" %}
+        </div>
+        
     </div>
-    <br>
-    <br>
-    <!-- Formulario para asignar pedido a chofer -->
-    <form id="asignarPedidoForm" method="POST" action="{% url 'asignar_pedidos' %}">
-        {% csrf_token %}
-        <label for="pedido">Seleccionar Pedido:</label>
-        <select name="id_pedido" id="idPedido">
-            {% for pedido in pedidos %}
-                <option value="{{ pedido.id_pedido }}">
-                    {{ pedido.id_cliente.nombre }} - {{ pedido.dir_salida }} -> {{ pedido.dir_destino }}
-                </option>
-            {% endfor %}
-        </select>
-    
-        <label for="chofer">Seleccionar Chofer:</label>
-        <select name="id_chofer" id="id_chofer">
-            {% for chofer in choferes %}
-                <option value="{{ chofer.id_chofer.id_chofer }}">
-                    {{ chofer.id_chofer.nombre }} - {{ chofer.patente }}
-                </option>
-            {% endfor %}
-        </select>
-    
-        <button type="submit">Asignar</button>
-    </form>
-    
-    <br>
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Cliente</th>
-                <th>Chofer</th>
-                <th>Salida</th>
-                <th>Destino</th>
-                <th>Estado</th>
-                <th>Acción</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for viaje in viajes_en_viaje %}
-            <tr>
-                <td>{{ viaje.id_viaje }}</td>
-                <td>{{ viaje.id_cliente.nombre }}</td>
-                <td>{{ viaje.patente }}</td>  <!-- Aquí muestras la patente del auto -->
-                <td>{{ viaje.dir_salida }}</td>
-                <td>{{ viaje.dir_destino }}</td>
-                <td>{{ viaje.estado }}</td>
-                <td>
-                    {% if viaje.estado == "En viaje" %}
-                        <button onclick="finalizarViaje('{{ viaje.id_viaje }}')">Finalizar</button>
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    
 </div>
 
 <script>
@@ -136,5 +261,28 @@
             alert("Ocurrió un error al finalizar el viaje.");
         });
     }
+
+    
 </script>
+<script>
+    // Restaurar la pestaña activa después de recargar
+    document.addEventListener("DOMContentLoaded", function () {
+        const activeTab = localStorage.getItem("activeTab");
+        if (activeTab) {
+            const tabElement = document.querySelector(`button[data-bs-target="${activeTab}"]`);
+            if (tabElement) {
+                const tab = new bootstrap.Tab(tabElement);
+                tab.show();
+            }
+        }
+    });
+
+    // Guardar la pestaña activa al cambiar de pestaña
+    document.querySelectorAll('button[data-bs-toggle="tab"]').forEach(tabButton => {
+        tabButton.addEventListener("shown.bs.tab", function (event) {
+            localStorage.setItem("activeTab", event.target.getAttribute("data-bs-target"));
+        });
+    });
+</script>
+
 {% endblock %}

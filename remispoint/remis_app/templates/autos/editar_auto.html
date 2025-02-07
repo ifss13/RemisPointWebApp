@@ -1,0 +1,48 @@
+<form method="POST" action="{% url 'editar_auto' auto.patente %}" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="modal-body">
+        <div class="mb-3">
+            <label for="tipo" class="form-label">Tipo</label>
+            <input type="text" class="form-control" id="tipo" name="tipo" value="{{ auto.tipo }}" required>
+        </div>
+        <div class="mb-3">
+            <label for="anio_modelo" class="form-label">Año</label>
+            <input type="number" class="form-control" id="anio_modelo" name="anio_modelo" value="{{ auto.anio_modelo }}" required>
+        </div>
+        <div class="mb-3">
+            <label for="propietario" class="form-label">Propietario</label>
+            <input type="text" class="form-control" id="propietario" name="propietario" value="{{ auto.propietario }}" required>
+        </div>
+        <div class="mb-3">
+            <label for="remiseria" class="form-label">Remisería</label>
+            <select class="form-select" id="remiseria" name="id_remiseria" required>
+                {% for remiseria in remiserias %}
+                <option value="{{ remiseria.id_remiseria }}" {% if remiseria.id_remiseria == auto.id_remiseria %}selected{% endif %}>{{ remiseria.nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <!-- Switch para cambiar la foto -->
+        <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" id="cambiarFotoSwitch-{{ auto.patente }}" name="cambiar_foto">
+            <label class="form-check-label" for="cambiarFotoSwitch-{{ auto.patente }}">¿Deseas cambiar la foto?</label>
+        </div>
+
+        <!-- Campo de carga de foto -->
+        <div class="mb-3" id="fotoInput-{{ auto.patente }}" style="display: none;">
+            <label for="foto" class="form-label">Nueva Foto</label>
+            <input type="file" class="form-control" id="foto-{{ auto.patente }}" name="foto">
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+    </div>
+</form>
+
+<script>
+    // Mostrar/ocultar el campo de foto según el estado del switch
+    document.getElementById("cambiarFotoSwitch-{{ auto.patente }}").addEventListener("change", function() {
+        const fotoInput = document.getElementById("fotoInput-{{ auto.patente }}");
+        fotoInput.style.display = this.checked ? "block" : "none";
+    });
+</script>

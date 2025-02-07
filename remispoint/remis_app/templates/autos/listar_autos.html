@@ -1,0 +1,119 @@
+<h2>Lista de Autos</h2>
+<a href="#" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#nuevoAutoModal">Nuevo Auto</a>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Patente</th>
+            <th>Tipo</th>
+            <th>Propietario</th>
+            <th>Año</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for auto in autos %}
+        <tr>
+            <td>{{ auto.patente }}</td>
+            <td>{{ auto.tipo }}</td>
+            <td>{{ auto.propietario }}</td>
+            <td>{{ auto.anio_modelo }}</td>
+            <td>
+                <!-- Botón para abrir el modal de editar -->
+                <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editarAutoModal-{{ auto.patente|slugify }}">
+                    Editar
+                </button>
+    
+                <!-- Botón para abrir el modal de eliminar -->
+                <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#eliminarAutoModal-{{ auto.patente|slugify }}">
+                    Eliminar
+                </button>
+    
+                <!-- Modal de Editar -->
+                <!-- Generar un ID seguro -->
+                <div class="modal fade" id="editarAutoModal-{{ auto.patente|slugify }}" tabindex="-1" aria-labelledby="editarAutoLabel-{{ auto.patente|slugify }}" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            {% include "autos/editar_auto.html" %}
+                        </div>
+                    </div>
+                </div>
+    
+                <!-- Modal de Eliminar -->
+                <div class="modal fade" id="eliminarAutoModal-{{ auto.patente|slugify }}" tabindex="-1" aria-labelledby="eliminarAutoLabel-{{ auto.patente|slugify }}" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            {% include "autos/eliminar_auto.html" %}
+                        </div>
+                    </div>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+    
+    </tbody>
+</table>
+
+<!-- Modal para Nuevo Auto -->
+<div class="modal fade" id="nuevoAutoModal" tabindex="-1" aria-labelledby="nuevoAutoLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{% url 'crear_auto' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title" id="nuevoAutoLabel">Nuevo Auto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Patente -->
+                    <div class="mb-3">
+                        <label for="patente" class="form-label">Patente</label>
+                        <input type="text" class="form-control" id="patente" name="patente" required>
+                    </div>
+                    <!-- Tipo -->
+                    <div class="mb-3">
+                        <label for="tipo" class="form-label">Tipo</label>
+                        <input type="text" class="form-control" id="tipo" name="tipo" required>
+                    </div>
+                    <!-- Año del Modelo -->
+                    <div class="mb-3">
+                        <label for="anio_modelo" class="form-label">Año del Modelo</label>
+                        <input type="number" class="form-control" id="anio_modelo" name="anio_modelo" required>
+                    </div>
+                    <!-- Propietario -->
+                    <div class="mb-3">
+                        <label for="propietario" class="form-label">Propietario</label>
+                        <input type="text" class="form-control" id="propietario" name="propietario" required>
+                    </div>
+                    <!-- VTV -->
+                    <div class="mb-3">
+                        <label for="vtv" class="form-label">VTV</label>
+                        <input type="date" class="form-control" id="vtv" name="vtv" required>
+                    </div>
+                    <!-- Vencimiento de Patente -->
+                    <div class="mb-3">
+                        <label for="venc_patente" class="form-label">Vencimiento de Patente</label>
+                        <input type="date" class="form-control" id="venc_patente" name="venc_patente" required>
+                    </div>
+                    <!-- Foto -->
+                    <div class="mb-3">
+                        <label for="foto" class="form-label">Foto</label>
+                        <input type="file" class="form-control" id="foto" name="foto">
+                    </div>
+                    <!-- Remisería -->
+                    <div class="mb-3">
+                        <label for="id_remiseria" class="form-label">Remisería</label>
+                        <select class="form-select" id="id_remiseria" name="id_remiseria" required>
+                            {% for remiseria in remiserias %}
+                            <option value="{{ remiseria.id_remiseria }}">{{ remiseria.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

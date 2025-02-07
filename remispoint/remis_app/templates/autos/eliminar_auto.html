@@ -1,0 +1,11 @@
+<form method="POST" action="{% url 'eliminar_auto' auto.patente %}">
+    {% csrf_token %}
+    <div class="modal-body">
+        <p>¿Estás seguro de que deseas eliminar el auto con patente <strong>{{ auto.patente }}</strong>?</p>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-danger">Eliminar</button>
+    </div>
+</form>
+

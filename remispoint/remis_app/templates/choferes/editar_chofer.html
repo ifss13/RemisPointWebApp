@@ -1,0 +1,53 @@
+<form method="POST" enctype="multipart/form-data">
+    {% csrf_token %}
+    <input type="hidden" name="id_chofer" value="{{ chofer.id_chofer }}">
+    <input type="hidden" name="operation" value="editar_chofer">
+    <div class="modal-body">
+        <div class="mb-3">
+            <label for="nombre" class="form-label">Nombre</label>
+            <input type="text" class="form-control" id="nombre" name="nombre" value="{{ chofer.nombre }}" required>
+        </div>
+        <div class="mb-3">
+            <label for="apellido" class="form-label">Apellido</label>
+            <input type="text" class="form-control" id="apellido" name="apellido" value="{{ chofer.apellido }}" required>
+        </div>
+        <div class="mb-3">
+            <label for="nro_tel" class="form-label">Teléfono</label>
+            <input type="text" class="form-control" id="nro_tel" name="nro_tel" value="{{ chofer.nro_tel }}" required>
+        </div>
+        <div class="mb-3 form-check">
+            <input type="checkbox" class="form-check-input" id="cambiarLicencia" name="cambiar_licencia">
+            <label class="form-check-label" for="cambiarLicencia">Actualizar licencia</label>
+        </div>
+        <div class="mb-3">
+            <label for="licencia" class="form-label">Nueva Licencia</label>
+            <input type="file" class="form-control" id="licencia" name="licencia" disabled>
+        </div>
+        <div class="mb-3 form-check">
+            <input type="checkbox" class="form-check-input" id="cambiarFoto" name="cambiar_foto">
+            <label class="form-check-label" for="cambiarFoto">Actualizar foto</label>
+        </div>
+        <div class="mb-3">
+            <label for="foto" class="form-label">Nueva Foto</label>
+            <input type="file" class="form-control" id="foto" name="foto" disabled>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+    </div>
+</form>
+
+<script>
+    // Habilitar/deshabilitar los campos de licencia y foto
+    document.getElementById('cambiarLicencia').addEventListener('change', function() {
+        const licenciaInput = document.getElementById('licencia');
+        licenciaInput.disabled = !this.checked;
+    });
+
+    document.getElementById('cambiarFoto').addEventListener('change', function() {
+        const fotoInput = document.getElementById('foto');
+        fotoInput.disabled = !this.checked;
+    });
+</script>
+

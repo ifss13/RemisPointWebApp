@@ -13,16 +13,22 @@
 
             {% if viaje_asignado %}
                 <h3>Tu viaje ha sido asignado</h3>
-                <div class="card">
+                <div class="card text-center">
                     <div class="card-body">
                         <h5 class="card-title">Información del Chofer</h5>
+                        {% if chofer.foto %}
+                            <img src="{{ chofer.foto.url }}" alt="Foto del Chofer" class="img-fluid rounded-circle mb-3" style="width: 150px; height: 150px; object-fit: cover;">
+                        {% endif %}
                         <p><strong>Nombre:</strong> {{ chofer.nombre }}</p>
                         <p><strong>Teléfono:</strong> {{ chofer.nro_tel }}</p>
                     </div>
                 </div>
-                <div class="card mt-3">
+                <div class="card mt-3 text-center">
                     <div class="card-body">
                         <h5 class="card-title">Información del Auto</h5>
+                        {% if auto.foto %}
+                            <img src="{{ auto.foto.url }}" alt="Foto del Auto" class="img-fluid mb-3" style="width: 100%; max-width: 300px; height: auto; object-fit: cover;">
+                        {% endif %}
                         <p><strong>Tipo:</strong> {{ auto.tipo }}</p>
                         <p><strong>Patente:</strong> {{ auto.patente }}</p>
                         <p><strong>Año Modelo:</strong> {{ auto.anio_modelo }}</p>
@@ -38,7 +44,6 @@
     {% endif %}
 </div>
 
-
 <script>
     const pedidoId = "{{ pedido_id }}";  // Asegúrate de que pedido_id esté disponible en el contexto
     setInterval(() => {
@@ -53,9 +58,5 @@
             .catch(error => console.error('Error al verificar el estado:', error));
     }, 5000); // Verificar cada 5 segundos
 </script>
-
-
-
-
-</div>
 {% endblock %}
+

@@ -1,0 +1,6 @@
+<h2>{% if auto %}Editar{% else %}Crear{% endif %} Auto</h2>
+<form method="POST" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-success">{% if auto %}Guardar Cambios{% else %}Crear{% endif %}</button>
+</form>

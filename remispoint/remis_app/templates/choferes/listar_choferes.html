@@ -1,0 +1,74 @@
+<h2>Lista de Choferes</h2>
+<a href="#" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#crearChoferModal">Nuevo Chofer</a>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>Apellido</th>
+            <th>Teléfono</th>
+            <th>Licencia</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for chofer in choferes_list %}
+        <tr>
+            <td>{{ chofer.nombre }}</td>
+            <td>{{ chofer.apellido }}</td>
+            <td>{{ chofer.nro_tel }}</td>
+            <td>
+                <button class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#verLicenciaModal-{{ chofer.id_chofer }}">
+                    Ver Licencia
+                </button>
+            </td>
+            <td>
+                <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editarChoferModal-{{ chofer.id_chofer }}">Editar</button>
+                <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#eliminarChoferModal-{{ chofer.id_chofer }}">Eliminar</button>
+            </td>
+        </tr>
+
+        <!-- Modal para Ver Licencia -->
+        <div class="modal fade" id="verLicenciaModal-{{ chofer.id_chofer }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Licencia de {{ chofer.nombre }} {{ chofer.apellido }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body text-center">
+                        <img src="{{ chofer.licencia.url }}" alt="Licencia de {{ chofer.nombre }}" class="img-fluid">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal para Editar Chofer -->
+        <div class="modal fade" id="editarChoferModal-{{ chofer.id_chofer }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    {% include "choferes/editar_chofer.html" %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal para Eliminar Chofer -->
+        <div class="modal fade" id="eliminarChoferModal-{{ chofer.id_chofer }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    {% include "choferes/eliminar_chofer.html" %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- Modal para Crear Chofer -->
+<div class="modal fade" id="crearChoferModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            {% include "choferes/crear_chofer.html" %}
+        </div>
+    </div>
+</div>
+

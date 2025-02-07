@@ -6,13 +6,14 @@
 <style>
     .remiseria-card {
         cursor: pointer;
-        padding: 10px;
+        padding: 15px;
         text-align: center;
         margin: 10px;
         border: 1px solid #ccc;
         border-radius: 10px;
-        display: inline-block;
-        width: 250px;
+        transition: all 0.3s ease;
+        width: 100%; /* Se adapta automáticamente al ancho de la columna */
+        max-width: 300px; /* Limita el tamaño máximo de la tarjeta en escritorio */
     }
 
     .remiseria-card:hover {
@@ -21,43 +22,81 @@
 
     .remiseria-card img {
         width: 100%;
-        height: 150px;
+        height: 200px; /* Altura consistente para escritorio */
         object-fit: cover;
         border-radius: 8px;
     }
+
+    @media (max-width: 768px) {
+        .remiseria-card {
+            max-width: 200px; /* Tamaño más pequeño en móvil */
+        }
+
+        .remiseria-card img {
+            height: 120px; /* Reduce la altura de las imágenes en móvil */
+        }
+
+        .remiseria-card h3 {
+            font-size: 1rem; /* Texto más pequeño */
+        }
+
+        .remiseria-card p {
+            font-size: 0.9rem; /* Texto más pequeño */
+        }
+    }
 </style>
-<h1>Remiserías afiliadas</h1>
-<h4>Selecciona la remisería para realizar el pedido</h4>
-{% for remiseria in remiserias %}
-<div class="remiseria-card" onclick="selectRemiseria('{{ remiseria.id_remiseria }}')">
-    {% if remiseria.foto %}
-        <img src="../static/images/Remis_obe_logo.png" alt="{{ remiseria.nombre }}" style="max-width: 200px; height: auto;">
-    {% else %}
-        <img src="../static/images/Remis_obe_logo.png" alt="{{ remiseria.nombre }}" style="max-width: 200px; height: auto;">
-    {% endif %}
-    <h3>{{ remiseria.nombre }}</h3>
-    <p>Tel: {{ remiseria.telefono }}</p>
+
+<h1 class="text-center">Remiserías afiliadas</h1>
+<h4 class="text-center">Selecciona la remisería para realizar el pedido</h4>
+
+<div class="container">
+    <div class="row justify-content-center">
+        {% for remiseria in remiserias %}
+        <!-- Configuración 2x2 para móvil -->
+        <div class="col-6 col-md-4 col-lg-3 mb-4 d-flex justify-content-center">
+            <div class="remiseria-card" onclick="selectRemiseria('{{ remiseria.id_remiseria }}')">
+                {% if remiseria.foto %}
+                    <img src="{{ remiseria.foto.url }}" alt="{{ remiseria.nombre }}">
+                {% else %}
+                    <img src="../static/images/Remis-Point.png" alt="{{ remiseria.nombre }}">
+                {% endif %}
+                <h3>{{ remiseria.nombre }}</h3>
+                <p>Tel: {{ remiseria.telefono }}</p>
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- Ejemplos de remiserías -->
+        <div class="col-6 col-md-4 col-lg-3 mb-4 d-flex justify-content-center">
+            <div class="remiseria-card">
+                <img src="../static/images/Remis-Point.png" alt="Remiseria Ejemplo 1">
+                <h3>Remiseria 1</h3>
+                <p>S/N</p>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-3 mb-4 d-flex justify-content-center">
+            <div class="remiseria-card">
+                <img src="../static/images/Remis-Point.png" alt="Remiseria Ejemplo 2">
+                <h3>Remiseria 2</h3>
+                <p>S/N</p>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-3 mb-4 d-flex justify-content-center">
+            <div class="remiseria-card">
+                <img src="../static/images/Remis-Point.png" alt="Remiseria Ejemplo 3">
+                <h3>Remiseria 3</h3>
+                <p>S/N</p>
+            </div>
+        </div>
+    </div>
 </div>
-{% endfor %}
-<!--REMISERIAS DE EJEMPLO-->
-<div class="remiseria-card">
-    <img src="../static/images/Remis-Point.png" alt="Remiseria Ejemplo 1" style="max-width: 200px; height: 200px;">
-    <h3>Remiseria 1</h3>
-    <p>S/N</p>
-</div>
-<div class="remiseria-card">
-    <img src="../static/images/Remis-Point.png" alt="Remiseria Ejemplo 2" style="max-width: 200px; height: 200px;">
-    <h3>Remiseria 2</h3>
-    <p>S/N</p>
-</div>
-<div class="remiseria-card">
-    <img src="../static/images/Remis-Point.png" alt="Remiseria Ejemplo 3" style="max-width: 200px; height: 200px;">
-    <h3>Remiseria 3</h3>
-    <p>S/N</p>
-</div>
+
 <br>
-<h5>Ver ubicacion de remiserías afiliadas:</h5>
-<p>*mapa*</p>
+<div class="text-center">
+    <h5>Ver ubicación de remiserías afiliadas:</h5>
+    <p>*mapa*</p>
+</div>
+
 <script>
     function selectRemiseria(remiseriaId) {
         // Redirigir a pedidos.html con el ID de la remisería seleccionada

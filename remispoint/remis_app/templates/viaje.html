@@ -14,6 +14,13 @@
         border-radius: 15px;
         margin-top: 15px;
     }
+
+    .img-info {
+        max-width: 150px;
+        height: auto;
+        border-radius: 10px;
+        margin-top: 10px;
+    }
 </style>
 
 <div class="container">
@@ -30,16 +37,22 @@
         </div>
 
         <div class="card mb-3">
-            <div class="card-body">
+            <div class="card-body text-center">
                 <h5 class="card-title">Información del Chofer</h5>
                 <p><strong>Nombre:</strong> {{ chofer.nombre }} {{ chofer.apellido }}</p>
                 <p><strong>Teléfono:</strong> {{ chofer.nro_tel }}</p>
+                {% if chofer.foto %}
+                    <img src="{{ chofer.foto.url }}" alt="Foto del Chofer" class="img-info">
+                {% endif %}
             </div>
         </div>
 
         <div class="card mb-3">
-            <div class="card-body">
+            <div class="card-body text-center">
                 <h5 class="card-title">Información del Auto</h5>
+                {% if auto.foto %}
+                    <img src="{{ auto.foto.url }}" alt="Foto del Auto" class="img-info">
+                {% endif %}
                 <p><strong>Tipo:</strong> {{ auto.tipo }}</p>
                 <p><strong>Patente:</strong> {{ auto.patente }}</p>
                 <p><strong>Año del Modelo:</strong> {{ auto.anio_modelo }}</p>
@@ -50,63 +63,72 @@
         <div id="map" data-salida="{{ viaje.dir_salida }}" data-destino="{{ viaje.dir_destino }}"></div>
     {% endif %}
 </div>
+
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script>
-    const mapElement = document.getElementById('map');
-    const salida = mapElement.dataset.salida;
-    const destino = mapElement.dataset.destino;
+    document.addEventListener('DOMContentLoaded', () => {
+        const mapElement = document.getElementById('map');
+        const salida = mapElement.dataset.salida + ', Oberá, Misiones';
+        const destino = mapElement.dataset.destino + ', Oberá, Misiones';
 
-    // Inicializar el mapa
-    const map = L.map('map').setView([-27.485045, -55.1199269], 13);
+        const map = L.map('map').setView([-27.485045, -55.1199269], 13);
 
-    // Agregar la capa base de OpenStreetMap
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
 
-    // Ajustar el tamaño del mapa después de que esté visible
-    setTimeout(() => {
-        map.invalidateSize();
-    }, 200);
+        setTimeout(() => {
+            map.invalidateSize();
+        }, 200);
 
-    // Función para obtener coordenadas de las direcciones
-    const geocodeURL = "https://nominatim.openstreetmap.org/search?format=json&q=";
+        const geocodeURL = "https://nominatim.openstreetmap.org/search?format=json&q=";
 
-    async function getCoords(address) {
-        const response = await fetch(geocodeURL + encodeURIComponent(address));
-        const data = await response.json();
-        if (data && data[0]) {
-            return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
-        }
-        throw new Error("No se encontraron coordenadas para " + address);
-    }
-
-    // Función para trazar la ruta
-    async function plotRoute() {
-        try {
-            const coordsSalida = await getCoords(salida);
-            const coordsDestino = await getCoords(destino);
-
-            // Agregar marcadores de salida y destino
-            L.marker(coordsSalida).addTo(map).bindPopup("Salida").openPopup();
-            L.marker(coordsDestino).addTo(map).bindPopup("Destino");
-
-            // Obtener la ruta desde la API de OpenRouteService
-            const routeURL = `https://api.openrouteservice.org/v2/directions/driving-car?api_key=YOUR_API_KEY&start=${coordsSalida[1]},${coordsSalida[0]}&end=${coordsDestino[1]},${coordsDestino[0]}`;
-            const routeResponse = await fetch(routeURL);
-            const routeData = await routeResponse.json();
-
-            if (routeData.features) {
-                const coordinates = routeData.features[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
-                L.polyline(coordinates, { color: 'blue' }).addTo(map);
-                map.fitBounds(L.polyline(coordinates).getBounds());
+        async function getCoords(address) {
+            const response = await fetch(geocodeURL + encodeURIComponent(address));
+            const data = await response.json();
+            if (data && data[0]) {
+                return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
             }
-        } catch (error) {
-            console.error("Error al trazar la ruta:", error);
+            throw new Error("No se encontraron coordenadas para " + address);
         }
-    }
 
-    plotRoute();
+        async function obtenerApiKey() {
+            const response = await fetch('/obtener-api-key/');
+            const data = await response.json();
+            if (data.api_key) {
+                return data.api_key;
+            }
+            throw new Error("No se pudo obtener la API Key");
+        }
+
+        async function plotRoute() {
+            try {
+                const coordsSalida = await getCoords(salida);
+                const coordsDestino = await getCoords(destino);
+
+                L.marker(coordsSalida).addTo(map).bindPopup("Salida").openPopup();
+                L.marker(coordsDestino).addTo(map).bindPopup("Destino");
+
+                const apiKey = await obtenerApiKey();
+                const routeURL = `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${apiKey}&start=${coordsSalida[1]},${coordsSalida[0]}&end=${coordsDestino[1]},${coordsDestino[0]}`;
+                const routeResponse = await fetch(routeURL);
+                const routeData = await routeResponse.json();
+
+                if (routeData.features) {
+                    const coordinates = routeData.features[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
+                    L.polyline(coordinates, { color: 'blue' }).addTo(map);
+                    map.fitBounds(L.polyline(coordinates).getBounds());
+                }
+            } catch (error) {
+                console.error("Error al trazar la ruta:", error);
+            }
+        }
+
+        plotRoute();
+    });
 </script>
 {% endblock %}
+
+
+
