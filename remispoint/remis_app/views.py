@@ -13,7 +13,7 @@ from django.conf import settings
 import requests
 from .models import PedidosCliente
 import json
-from remis_app.models import PedidosCliente, ChoferAuto, Cliente, Viaje, Chofer, Auto, Notificacion, Remiseria, TipoPago
+from remis_app.models import PedidosCliente, ChoferAuto, Cliente, Viaje, Chofer, Auto, Notificacion, Remiseria, TipoPago, Precio
 from django.shortcuts import get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.forms import PasswordChangeForm
@@ -39,17 +39,17 @@ def register(request):
 
         # Verificación de formato de correo
         if not correo or '@' not in correo:
-            return render(request, 'registro.html', {'error': "Correo no válido", 'localidades': Localidad.objects.all()})
+            return render(request, 'base/registro.html', {'error': "Correo no válido", 'localidades': Localidad.objects.all()})
 
         # Verificación de contraseñas
         if password != password2:
-            return render(request, 'registro.html', {'error': "Las contraseñas no coinciden", 'localidades': Localidad.objects.all()})
+            return render(request, 'base/registro.html', {'error': "Las contraseñas no coinciden", 'localidades': Localidad.objects.all()})
 
         # Verificación de si el correo o el username ya existen
         if User.objects.filter(email=correo).exists():
-            return render(request, 'registro.html', {'error': "Este correo ya está registrado", 'localidades': Localidad.objects.all()})
+            return render(request, 'base/registro.html', {'error': "Este correo ya está registrado", 'localidades': Localidad.objects.all()})
         if User.objects.filter(username=username).exists():
-            return render(request, 'registro.html', {'error': "El nombre de usuario ya está registrado", 'localidades': Localidad.objects.all()})
+            return render(request, 'base/registro.html', {'error': "El nombre de usuario ya está registrado", 'localidades': Localidad.objects.all()})
 
         try:
             # Crear un nuevo usuario en Django (tabla auth_user)
@@ -82,11 +82,11 @@ def register(request):
             return redirect('home')  # Redirige a la página de inicio o donde quieras
 
         except IntegrityError:
-            return render(request, 'registro.html', {'error': "Hubo un error al guardar los datos. Intenta nuevamente.", 'localidades': Localidad.objects.all()})
+            return render(request, 'base/registro.html', {'error': "Hubo un error al guardar los datos. Intenta nuevamente.", 'localidades': Localidad.objects.all()})
 
     # Si es GET, muestra el formulario de registro
     localidades = Localidad.objects.all()
-    return render(request, 'registro.html', {'localidades': localidades})
+    return render(request, 'base/registro.html', {'localidades': localidades})
 
 
 
@@ -108,11 +108,11 @@ def custom_login(request):
             return redirect('home')  # Redirige a la página de inicio después de iniciar sesión
         else:
             # Si el formulario no es válido, se renderiza nuevamente el login
-            return render(request, 'registration/login.html', {'form': form})
+            return render(request, 'base/login.html', {'form': form})
     else:
         form = AuthenticationForm()
 
-    return render(request, 'registration/login.html', {'form': form})
+    return render(request, 'base/login.html', {'form': form})
 
 
 def custom_logout(request):
@@ -233,7 +233,7 @@ def pedidos(request):
 
     elif request.method == "GET":
         remiseria_id = request.GET.get('remiseria_id')  # Capturamos el remiseria_id de la URL
-        return render(request, "pedidos.html", {'remiseria_id': remiseria_id})
+        return render(request, "clientes/pedidos.html", {'remiseria_id': remiseria_id})
 
     return JsonResponse({"status": "error", "message": "Método no permitido."}, status=405)
 
@@ -244,21 +244,33 @@ def pedidos(request):
 def esperando_chofer(request, pedido_id):
     try:
         pedido = get_object_or_404(PedidosCliente, id_pedido=pedido_id)
-        viaje = Viaje.objects.filter(id_cliente=pedido.id_cliente).first()
-        chofer = viaje.chofer if viaje else None
-        auto = Auto.objects.filter(patente=viaje.patente).first() if viaje else None
+        viaje = Viaje.objects.filter(id_cliente=pedido.id_cliente, estado="En viaje").first()
+        
+        # Si el viaje no ha sido asignado, mostramos el spinner de "Esperando asignación"
+        if not viaje:
+            return render(request, 'clientes/esperando_chofer.html', {
+                'pedido_id': pedido_id,
+                'viaje_asignado': False
+            })
 
-        return render(request, 'esperando_chofer.html', {
+        # Si el viaje está asignado, obtenemos los datos del auto y chofer
+        auto = Auto.objects.filter(patente=viaje.patente).first()
+        chofer_auto = ChoferAuto.objects.filter(patente=viaje.patente).first()
+        chofer = chofer_auto.id_chofer if chofer_auto else None
+
+        return render(request, 'clientes/esperando_chofer.html', {
             'pedido_id': pedido_id,
             'chofer': chofer,
             'auto': auto,
-            'viaje_asignado': viaje is not None,
+            'viaje_asignado': True,  # Solo mostramos la info cuando el viaje ya está asignado
         })
     except Exception as e:
-        return render(request, 'esperando_chofer.html', {
+        return render(request, 'clientes/esperando_chofer.html', {
             'pedido_id': pedido_id,
             'error': f"Error: {str(e)}"
         })
+
+
 
 
 
@@ -298,7 +310,7 @@ def asignar_pedidos(request):
         viajes_registrados = Viaje.objects.all()
         tipopago = TipoPago.objects.all()
 
-        return render(request, "base_pedidos.html", {
+        return render(request, "administracion_base/base_pedidos.html", {
             "pedidos": pedidos_pendientes,
             "choferes": choferes_disponibles,
             "viajes_en_viaje": viajes_en_viaje,
@@ -404,8 +416,8 @@ def asignar_pedidos(request):
                     dir_destino=pedido.dir_destino,
                     hora=timezone.now().time(),
                     fecha=timezone.now().date(),
-                    id_precio=1,
-                    cod_tipo_pago=1,
+                    id_precio=get_object_or_404(Precio, id_precio=1),  # 🔹 Esto soluciona el problema
+                    cod_tipo_pago=get_object_or_404(TipoPago, cod_tipo_pago=1),
                     id_remiseria=1,
                     inicio=timezone.now().time(),
                     fin=timezone.now().time(),
@@ -552,7 +564,7 @@ def base_pedidos(request):
     autos = Auto.objects.all()
 
     # Pasar los autos al template
-    return render(request, 'base_pedidos.html', {'autos': autos})
+    return render(request, 'administracion_base/base_pedidos.html', {'autos': autos})
 
 
 
@@ -596,7 +608,7 @@ def panel_cuenta(request):
     pedidos = PedidosCliente.objects.filter(id_cliente=cliente.id_cliente)
 
     # Pasar la variable 'es_base' a la plantilla para usarla en el frontend
-    return render(request, 'panel_cuenta.html', {
+    return render(request, 'base/panel_cuenta.html', {
         'cliente': cliente,
         'viajes': viajes,
         'pedidos': pedidos,
@@ -642,7 +654,7 @@ def cambiar_contrasena(request):
 
 
 def no_autorizado(request):
-    return render(request, 'no_autorizado.html', {'error': "No tienes permisos para acceder a esta página."})
+    return render(request, 'base/no_autorizado.html', {'error': "No tienes permisos para acceder a esta página."})
 
 
 def obtener_notificaciones(request):
@@ -679,7 +691,7 @@ def remiserias(request):
     remiseria = Remiseria.objects.all()
     
     # Pasar las remiserías al template
-    return render(request, 'remiseria.html', {'remiserias': remiseria})
+    return render(request, 'clientes/remiseria.html', {'remiserias': remiseria})
 
 def viaje(request):
     try:
@@ -690,7 +702,7 @@ def viaje(request):
         viaje = Viaje.objects.filter(id_cliente=cliente.id_cliente, estado="En viaje").first()
 
         if not viaje:
-            return render(request, 'viaje.html', {'error': "No tienes un viaje en progreso."})
+            return render(request, 'clientes/viaje.html', {'error': "No tienes un viaje en progreso."})
 
         # Obtener la información del chofer y del auto
         chofer_auto = ChoferAuto.objects.get(patente=viaje.patente)
@@ -698,22 +710,22 @@ def viaje(request):
         auto = Auto.objects.get(patente=viaje.patente)
 
         # Enviar los datos al template
-        return render(request, 'viaje.html', {
+        return render(request, 'clientes/viaje.html', {
             'viaje': viaje,
             'chofer': chofer,
             'auto': auto
         })
 
     except Auto.DoesNotExist:
-        return render(request, 'viaje.html', {
+        return render(request, 'clientes/viaje.html', {
             'error': f"El auto asociado al viaje con la patente '{viaje.patente}' no existe."
         })
     except ChoferAuto.DoesNotExist:
-        return render(request, 'viaje.html', {'error': "No se encontró información del chofer para este auto."})
+        return render(request, 'clientes/viaje.html', {'error': "No se encontró información del chofer para este auto."})
     except Chofer.DoesNotExist:
-        return render(request, 'viaje.html', {'error': "No se encontró información del chofer."})
+        return render(request, 'clientes/viaje.html', {'error': "No se encontró información del chofer."})
     except Exception as e:
-        return render(request, 'viaje.html', {'error': str(e)})
+        return render(request, 'clientes/viaje.html', {'error': str(e)})
     
 @login_required  
 def obtener_api_key(request):
@@ -726,7 +738,7 @@ def obtener_api_key(request):
 def listar_autos(request):
     autos = Auto.objects.all()
     remiserias = Remiseria.objects.all()  # Obtener todas las remiserías
-    return render(request, 'autos/listar_autos.html', {
+    return render(request, 'administracion_base/autos/listar_autos.html', {
         'autos': autos,
         'remiserias': remiserias
     })
@@ -769,7 +781,7 @@ def crear_auto(request):
         autos = Auto.objects.all()
         remiserias = Remiseria.objects.all()
 
-        return render(request, "base_pedidos.html", {
+        return render(request, "administracion_base/base_pedidos.html", {
             "pedidos": pedidos_pendientes,
             "choferes": choferes_disponibles,
             "viajes_en_viaje": viajes_en_viaje,
@@ -858,3 +870,7 @@ def eliminar_asignacion(request, id_chofer, patente):
         messages.error(request, f"Error al eliminar la asignación: {str(e)}")
 
     return redirect("administracion")
+
+@login_required
+def panel_chofer(request):
+    return render(request, "chofer/panel_chofer.html")

@@ -140,7 +140,22 @@
     var rutaAnterior;
     var marcadorPartida, marcadorDestino;
     var coordsPartida = null, coordsDestino = null;
-    var marcadoresColocados = 0; // Para contar cuántos marcadores se han colocado
+    var marcadoresColocados = 0; 
+    var partidaFijada = false;
+    var ubicacionInicial = null; // Guardará la ubicación del usuario al cargar la página
+
+    // Obtener la ubicación inicial del usuario al cargar la página
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+            ubicacionInicial = {
+                lat: position.coords.latitude,
+                lon: position.coords.longitude
+            };
+            map.setView([ubicacionInicial.lat, ubicacionInicial.lon], 15);
+        }, function(error) {
+            console.warn("No se pudo obtener la ubicación inicial: " + error.message);
+        });
+    }
 
     // Función para obtener la dirección desde las coordenadas usando la API de geocodificación
     function obtenerDireccion(lat, lon, tipo) {
@@ -150,20 +165,9 @@
             .then(response => response.json())
             .then(data => {
                 if (data && data.address) {
-                    let direccion = "";
-
-                    if (data.address.road && data.address.house_number) {
-                        direccion = `${data.address.road} ${data.address.house_number}`;
-                    } else if (data.address.road) {
-                        direccion = data.address.road;
-                    } else if (data.address.house_number) {
-                        direccion = data.address.house_number;
-                    }
-
+                    let direccion = data.address.road ? `${data.address.road}` : "Dirección desconocida";
                     if (tipo === 'partida') {
                         document.getElementById('punto-partida').value = direccion;
-
-                        // Habilitar el botón de destino
                         document.querySelector("button[onclick=\"obtenerUbicacion('destino')\"]").disabled = false;
                     } else if (tipo === 'destino') {
                         document.getElementById('entrega').value = direccion;
@@ -187,55 +191,55 @@
         var lat = e.latlng.lat;
         var lon = e.latlng.lng;
 
-        // Colocar marcador de partida solo si no se han colocado dos
-        if (marcadoresColocados < 2) {
-            if (marcadoresColocados === 0) {
-                marcadorPartida = crearMarcador(lat, lon, false);
-                coordsPartida = { lat: lat, lon: lon };
-                obtenerDireccion(lat, lon, 'partida');
-            } else if (marcadoresColocados === 1) {
-                marcadorDestino = crearMarcador(lat, lon, true);
-                coordsDestino = { lat: lat, lon: lon };
-                obtenerDireccion(lat, lon, 'destino');
+        if (partidaFijada || marcadoresColocados === 1) {
+            if (marcadorDestino) {
+                map.removeLayer(marcadorDestino);
             }
+            marcadorDestino = crearMarcador(lat, lon, true);
+            coordsDestino = { lat: lat, lon: lon };
+            obtenerDireccion(lat, lon, 'destino');
+            marcadoresColocados = 2;
+        } else {
+            if (marcadorPartida) {
+                map.removeLayer(marcadorPartida);
+            }
+            marcadorPartida = crearMarcador(lat, lon, false);
+            coordsPartida = { lat: lat, lon: lon };
+            obtenerDireccion(lat, lon, 'partida');
 
-            // Incrementar el contador de marcadores
+            document.querySelector("button[onclick=\"obtenerUbicacion('destino')\"]").disabled = false;
             marcadoresColocados++;
         }
     });
 
     // Función para obtener la ubicación actual y colocar un marcador
     function obtenerUbicacion(tipo) {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(function (position) {
-                var lat = position.coords.latitude;
-                var lon = position.coords.longitude;
+        if (ubicacionInicial) {
+            var lat = ubicacionInicial.lat;
+            var lon = ubicacionInicial.lon;
 
-                if (tipo === 'partida') {
-                    if (marcadorPartida) {
-                        map.removeLayer(marcadorPartida);
-                    }
-                    marcadorPartida = crearMarcador(lat, lon, false);
-                    coordsPartida = { lat: lat, lon: lon };
-                    obtenerDireccion(lat, lon, 'partida');
-
-                    // Habilitar el botón de destino
-                    document.querySelector("button[onclick=\"obtenerUbicacion('destino')\"]").disabled = false;
-                } else if (tipo === 'destino' && coordsPartida) {
-                    if (marcadorDestino) {
-                        map.removeLayer(marcadorDestino);
-                    }
-                    marcadorDestino = crearMarcador(lat, lon, true);
-                    coordsDestino = { lat: lat, lon: lon };
-                    obtenerDireccion(lat, lon, 'destino');
-                } else {
-                    alert("Primero debes seleccionar un punto de partida.");
+            if (tipo === 'partida') {
+                if (marcadorPartida) {
+                    map.removeLayer(marcadorPartida);
                 }
-            }, function (error) {
-                alert("No se pudo obtener la ubicación: " + error.message);
-            });
+                marcadorPartida = crearMarcador(lat, lon, false);
+                coordsPartida = { lat: lat, lon: lon };
+                obtenerDireccion(lat, lon, 'partida');
+
+                partidaFijada = true;
+                document.querySelector("button[onclick=\"obtenerUbicacion('destino')\"]").disabled = false;
+            } else if (tipo === 'destino' && coordsPartida) {
+                if (marcadorDestino) {
+                    map.removeLayer(marcadorDestino);
+                }
+                marcadorDestino = crearMarcador(lat, lon, true);
+                coordsDestino = { lat: lat, lon: lon };
+                obtenerDireccion(lat, lon, 'destino');
+            } else {
+                alert("Primero debes seleccionar un punto de partida.");
+            }
         } else {
-            alert("La geolocalización no es soportada por este navegador.");
+            alert("Ubicación no disponible. Asegúrate de haber dado permisos de ubicación.");
         }
     }
 
@@ -246,8 +250,8 @@
             return;
         }
 
-        var coordsPartidaAPI = [coordsPartida.lon, coordsPartida.lat]; // [lon, lat]
-        var coordsDestinoAPI = [coordsDestino.lon, coordsDestino.lat]; // [lon, lat]
+        var coordsPartidaAPI = [coordsPartida.lon, coordsPartida.lat];
+        var coordsDestinoAPI = [coordsDestino.lon, coordsDestino.lat];
 
         var url = `https://api.openrouteservice.org/v2/directions/driving-car?api_key=5b3ce3597851110001cf6248bbaa88fc959c42db9efc751597c03a47&start=${coordsPartidaAPI[0]},${coordsPartidaAPI[1]}&end=${coordsDestinoAPI[0]},${coordsDestinoAPI[1]}`;
 
@@ -256,9 +260,7 @@
             .then(data => {
                 if (data.features && data.features.length > 0) {
                     var route = data.features[0].geometry.coordinates;
-                    var latLngs = route.map(function(coord) {
-                        return [coord[1], coord[0]];  // Convertir de [lon, lat] a [lat, lon]
-                    });
+                    var latLngs = route.map(coord => [coord[1], coord[0]]);
 
                     if (rutaAnterior) {
                         map.removeLayer(rutaAnterior);
@@ -277,7 +279,7 @@
             });
     }
 
-    // Función para limpiar el mapa
+    // Función para limpiar el mapa y reiniciar valores
     function limpiarMapa() {
         map.eachLayer(function(layer) {
             if (layer instanceof L.Marker || layer instanceof L.Polyline) {
@@ -287,19 +289,13 @@
         coordsPartida = null;
         coordsDestino = null;
         marcadoresColocados = 0;
+        partidaFijada = false;
         document.getElementById('punto-partida').value = "";
         document.getElementById('entrega').value = "";
         document.getElementById('valor-estimado').innerText = "";
     }
-
-    // Obtener la ubicación inicial si es posible
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(function(position) {
-            var lat = position.coords.latitude;
-            var lon = position.coords.longitude;
-            map.setView([lat, lon], 15);
-        });
-    }
 </script>
+
+
 
 {% endblock %}

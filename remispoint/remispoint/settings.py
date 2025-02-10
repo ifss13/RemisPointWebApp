@@ -139,3 +139,7 @@ ORS_API_KEY = "5b3ce3597851110001cf6248bbaa88fc959c42db9efc751597c03a47"
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://c55f-2803-a920-842-4400-d1ee-7aef-d755-2d63.ngrok-free.app"
+]

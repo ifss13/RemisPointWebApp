@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block title %}Panel del Chofer{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Panel del Chofer</h2>
+    
+    <!-- Estado del viaje -->
+    <div id="estado-viaje" class="alert alert-info text-center">
+        <h4>Esperando asignación de viaje...</h4>
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Cargando...</span>
+        </div>
+    </div>
+    
+    <!-- Información del Viaje (se muestra solo si hay viaje asignado) -->
+    <div id="info-viaje" class="d-none">
+        <h3>Información del Viaje</h3>
+        <p><strong>Cliente:</strong> <span id="cliente-nombre"></span></p>
+        <p><strong>Teléfono:</strong> <span id="cliente-telefono"></span></p>
+        <p><strong>Dirección de Salida:</strong> <span id="dir-salida"></span></p>
+        <p><strong>Dirección de Destino:</strong> <span id="dir-destino"></span></p>
+        <p><strong>Método de Pago:</strong> <span id="metodo-pago"></span></p>
+        
+        <!-- Mapa -->
+        <div id="map" class="map" style="width: 100%; height: 400px;"></div>
+        
+        <!-- Botones de acción -->
+        <button id="btn-iniciar" class="btn btn-success mt-3 d-none" onclick="iniciarViaje()">Iniciar Viaje</button>
+        <button id="btn-finalizar" class="btn btn-danger mt-3 d-none" onclick="finalizarViaje()">Finalizar Viaje</button>
+    </div>
+</div>
+
+<!-- Leaflet para mapas -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+    var map = L.map('map').setView([-27.485045, -55.1199269], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    function iniciarViaje() {
+        document.getElementById("btn-iniciar").classList.add("d-none");
+        document.getElementById("btn-finalizar").classList.remove("d-none");
+        alert("Viaje iniciado.");
+    }
+
+    function finalizarViaje() {
+        document.getElementById("btn-finalizar").classList.add("d-none");
+        alert("Viaje finalizado.");
+        window.location.reload(); // Volver al estado inicial
+    }
+</script>
+{% endblock %}

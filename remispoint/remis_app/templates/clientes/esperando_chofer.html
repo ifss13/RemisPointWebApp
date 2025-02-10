@@ -1,15 +1,15 @@
 {% extends 'base.html' %}
-
+{% load static %} 
 {% block title %}Esperando Chofer - RemisPoint{% endblock %}
 
 {% block content %}
 <div class="container">
-    <h2>Estado del Pedido</h2>
+    <h2 hidden>Estado del Pedido</h2>
     {% if error %}
         <div class="alert alert-danger">{{ error }}</div>
     {% else %}
         <div id="estado-pedido">
-            <p>Pedido ID: {{ pedido.id_pedido }}</p>
+            <p hidden>Pedido ID: {{ pedido.id_pedido }}</p>
 
             {% if viaje_asignado %}
                 <h3>Tu viaje ha sido asignado</h3>
@@ -35,14 +35,16 @@
                     </div>
                 </div>
             {% else %}
-                <h3>Esperando asignación de chofer...</h3>
-                <div class="spinner-border text-primary" role="status">
-                    <span class="sr-only">Cargando...</span>
-                </div>
+            <div style="display: flex; flex-direction: column; align-items: flex-start;">
+                <h2>Esperando asignación de chofer...</h2>
+                <div id="lottie-animacion" style="width: 30vw; height: 30vw; max-width: 500px;"></div>
+            </div>
+            
             {% endif %}
         </div>
     {% endif %}
 </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.9.6/lottie.min.js"></script>
 
 <script>
     const pedidoId = "{{ pedido_id }}";  // Asegúrate de que pedido_id esté disponible en el contexto
@@ -58,5 +60,16 @@
             .catch(error => console.error('Error al verificar el estado:', error));
     }, 5000); // Verificar cada 5 segundos
 </script>
+
+<script>
+    var animation = lottie.loadAnimation({
+        container: document.getElementById('lottie-animacion'), // Donde se renderiza la animación
+        renderer: 'svg', // Formato de renderizado (svg, canvas, html)
+        loop: true, // Que se repita indefinidamente
+        autoplay: true, // Iniciar automáticamente
+        path: "{% static 'animaciones/coche_de_juguete.json' %}" // Ruta correcta dentro de /static/
+    });
+</script>
+
 {% endblock %}
 
