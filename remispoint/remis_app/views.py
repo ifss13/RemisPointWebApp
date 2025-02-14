@@ -886,22 +886,20 @@ def eliminar_asignacion(request, id_chofer, patente):
 @chofer_required
 def panel_chofer(request):
     try:
-        # Obtener el cliente basado en el correo del usuario autenticado
         cliente = Cliente.objects.filter(correo=request.user.email).first()
         if not cliente:
             return render(request, "chofer/panel_chofer.html", {"error": "Cliente no encontrado."})
 
-        # Obtener el chofer relacionado con el cliente
         chofer = Chofer.objects.filter(id_cliente=cliente).first()
         if not chofer:
             return render(request, "chofer/panel_chofer.html", {"error": "Chofer no encontrado."})
 
-        # Verificar si hay un viaje asignado para este chofer con estado "Asignado"
-        viaje_asignado = Viaje.objects.filter(id_chofer=chofer, estado="Asignado").first()
+        # Obtener el viaje en curso, no solo asignado sino también en camino o en viaje
+        viaje = Viaje.objects.filter(id_chofer=chofer, estado__in=["Asignado", "En camino al cliente", "En viaje"]).first()
 
         return render(request, "chofer/panel_chofer.html", {
             "chofer": chofer,
-            "viaje": viaje_asignado  # Será None si no tiene un viaje asignado
+            "viaje": viaje  # Será None si no hay un viaje en curso
         })
 
     except Exception as e:
@@ -953,15 +951,16 @@ def verificar_viaje_asignado(request):
         cliente = Cliente.objects.get(correo=request.user.email)
         chofer = Chofer.objects.get(id_cliente=cliente)
 
-        # Buscar si el chofer tiene un viaje con estado "Asignado"
-        viaje = Viaje.objects.filter(id_chofer=chofer, estado="Asignado").first()
+        # Buscar si el chofer tiene un viaje en progreso (asignado o en camino)
+        viaje = Viaje.objects.filter(id_chofer=chofer, estado__in=["Asignado", "En camino al cliente", "En viaje"]).first()
 
         if viaje:
             return JsonResponse({
                 "asignado": True,
                 "id_viaje": viaje.id_viaje,
                 "dir_salida": viaje.dir_salida,
-                "dir_destino": viaje.dir_destino
+                "dir_destino": viaje.dir_destino,
+                "estado": viaje.estado  # Enviar el estado actual del viaje
             })
 
         return JsonResponse({"asignado": False})
@@ -970,6 +969,7 @@ def verificar_viaje_asignado(request):
         return JsonResponse({"asignado": False, "error": "No se encontró el chofer"}, status=400)
     except Exception as e:
         return JsonResponse({"asignado": False, "error": str(e)}, status=500)
+
 
 from django.views.decorators.csrf import csrf_exempt
 import json
@@ -992,11 +992,15 @@ def cambiar_estado_viaje(request, id_viaje):
             # Leer los datos enviados en la petición
             data = json.loads(request.body)
             nuevo_estado = data.get("estado")
+            print("Nuevo estado recibido:", nuevo_estado)
 
             # Actualizar el estado del viaje
             if nuevo_estado:
                 viaje.estado = nuevo_estado
-                viaje.save()
+                viaje.save(update_fields=["estado"])
+                # Refrescar el objeto desde la DB para confirmar la actualización
+                viaje.refresh_from_db()
+                print("Estado actualizado en DB:", viaje.estado)
                 return JsonResponse({"success": True, "message": "Estado actualizado correctamente"})
             else:
                 return JsonResponse({"success": False, "error": "Estado no proporcionado"}, status=400)
@@ -1007,3 +1011,4 @@ def cambiar_estado_viaje(request, id_viaje):
             return JsonResponse({"success": False, "error": str(e)}, status=500)
 
     return JsonResponse({"success": False, "error": "Método no permitido"}, status=405)
+

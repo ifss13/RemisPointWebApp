@@ -141,5 +141,5 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://c55f-2803-a920-842-4400-d1ee-7aef-d755-2d63.ngrok-free.app"
+    "https://5e64-2803-a920-842-4400-b061-40af-d725-6b09.ngrok-free.app"
 ]
