@@ -53,7 +53,7 @@ class Chofer(models.Model):
     nro_tel = models.CharField(max_length=20)
     licencia = models.ImageField(upload_to='choferes/licencias/', blank=True, null=True)
     foto = models.ImageField(upload_to='choferes/foto/', blank=True, null=True)
-
+    id_cliente = models.ForeignKey(Cliente,on_delete=models.CASCADE, db_column="id_cliente")
     class Meta:
         db_table = 'Chofer'
         managed = False
@@ -85,7 +85,7 @@ class ChoferAuto(models.Model):
     id_chofer = models.ForeignKey(Chofer, on_delete=models.CASCADE, db_column="id_chofer")
     turno = models.CharField(max_length=50)
     disponibilidad = models.BooleanField()
-
+    id = models.IntegerField(primary_key=True)
     class Meta:
         db_table = "ChoferAuto"
         managed = False  # Evita que Django intente gestionar la tabla
@@ -141,6 +141,7 @@ class Viaje(models.Model):
         db_column="patente"
     )# Patente del auto asignado
     estado = models.CharField(max_length=50)  # Estado del viaje (Ej. 'En progreso', 'Finalizado')
+    id_chofer = models.ForeignKey(Chofer, on_delete=models.CASCADE, db_column="id_chofer")
 
     class Meta:
         db_table = 'Viajes'

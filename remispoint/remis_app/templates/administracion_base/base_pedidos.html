@@ -125,7 +125,12 @@
                         <td>{{ viaje.dir_destino }}</td>
                         <td>{{ viaje.estado }}</td>
                         <td>
-                            {% if viaje.estado == "En viaje" %}
+                            
+                            <button onclick="finalizarViaje('{{ viaje.id_viaje }}')">Cancelar</button>
+                            
+                        </td>
+                        <td>
+                            {% if viaje.estado == "Asignado" %}
                                 <button onclick="finalizarViaje('{{ viaje.id_viaje }}')">Finalizar</button>
                             {% endif %}
                         </td>

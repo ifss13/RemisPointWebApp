@@ -18,3 +18,19 @@ def base_required(view_func):
         return redirect('no_autorizado')  # Redirige a una página de error o inicio
 
     return _wrapped_view
+
+
+def chofer_required(view_func):
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        if request.user.is_authenticated:
+            try:
+                cliente = Cliente.objects.get(correo=request.user.email)
+                if cliente.tipo_cuenta == Cliente.CHOFER:  # Solo choferes (tipo_cuenta == 2)
+                    return view_func(request, *args, **kwargs)
+            except Cliente.DoesNotExist:
+                pass
+
+        return redirect('no_autorizado')  # Redirige si no es chofer
+
+    return _wrapped_view

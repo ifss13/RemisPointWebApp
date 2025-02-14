@@ -36,5 +36,8 @@ urlpatterns = [
     path('choferes/eliminar/<int:id_chofer>/', views.asignar_pedidos, name='eliminar_chofer'),
     path('asignar-auto/', views.crear_asignacion, name='crear_asignacion'),
     path('eliminar-asignacion/<int:id_chofer>/<str:patente>/', views.eliminar_asignacion, name='eliminar_asignacion'),
-    
+    path("actualizar_estado_chofer/", views.actualizar_estado_chofer, name="actualizar_estado_chofer"),
+    path("chofer",views.panel_chofer, name='chofer'),
+    path("verificar_viaje_asignado/", views.verificar_viaje_asignado, name="verificar_viaje_asignado"),
+    path("cambiar_estado_viaje/<int:id_viaje>/", views.cambiar_estado_viaje, name="cambiar_estado_viaje"),
 ]

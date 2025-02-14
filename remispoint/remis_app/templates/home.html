@@ -152,6 +152,32 @@
                 lon: position.coords.longitude
             };
             map.setView([ubicacionInicial.lat, ubicacionInicial.lon], 15);
+
+            // Crear un div contenedor para la animación
+            var lottieDiv = document.createElement("div");
+            lottieDiv.style.width = "60px";
+            lottieDiv.style.height = "60px";
+
+            // Cargar la animación Lottie desde el JSON
+            var animation = lottie.loadAnimation({
+                container: lottieDiv,
+                renderer: 'svg',
+                loop: true,
+                autoplay: true,
+                path: "static/animaciones/Animacion_ubicacion.json"  // Asegúrate de que la ruta sea correcta
+            });
+
+            // Crear un ícono personalizado con L.divIcon
+            var lottieIcon = L.divIcon({
+                className: '',
+                html: lottieDiv,
+                iconSize: [60, 60],  // Ajustar el tamaño del marcador
+                iconAnchor: [30, 30]
+            });
+
+            // Agregar el marcador animado en la ubicación del usuario
+            L.marker([ubicacionInicial.lat, ubicacionInicial.lon], { icon: lottieIcon }).addTo(map);
+
         }, function(error) {
             console.warn("No se pudo obtener la ubicación inicial: " + error.message);
         });
@@ -296,6 +322,7 @@
     }
 </script>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.9.6/lottie.min.js"></script>
 
 
 {% endblock %}

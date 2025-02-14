@@ -18,7 +18,7 @@ from django.shortcuts import get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
-from remis_app.decorador import base_required
+from remis_app.decorador import base_required, chofer_required
 from django.views.decorators.csrf import csrf_exempt
 from .forms import AutoForm
 
@@ -244,7 +244,7 @@ def pedidos(request):
 def esperando_chofer(request, pedido_id):
     try:
         pedido = get_object_or_404(PedidosCliente, id_pedido=pedido_id)
-        viaje = Viaje.objects.filter(id_cliente=pedido.id_cliente, estado="En viaje").first()
+        viaje = Viaje.objects.filter(id_cliente=pedido.id_cliente, estado="Asignado").first()
         
         # Si el viaje no ha sido asignado, mostramos el spinner de "Esperando asignación"
         if not viaje:
@@ -253,10 +253,9 @@ def esperando_chofer(request, pedido_id):
                 'viaje_asignado': False
             })
 
-        # Si el viaje está asignado, obtenemos los datos del auto y chofer
-        auto = Auto.objects.filter(patente=viaje.patente).first()
-        chofer_auto = ChoferAuto.objects.filter(patente=viaje.patente).first()
-        chofer = chofer_auto.id_chofer if chofer_auto else None
+        # ✅ Usamos directamente el chofer del viaje
+        chofer = viaje.id_chofer
+        auto = viaje.patente  # `patente` en `Viaje` ya almacena la referencia del auto
 
         return render(request, 'clientes/esperando_chofer.html', {
             'pedido_id': pedido_id,
@@ -269,6 +268,8 @@ def esperando_chofer(request, pedido_id):
             'pedido_id': pedido_id,
             'error': f"Error: {str(e)}"
         })
+
+
 
 
 
@@ -302,7 +303,7 @@ def asignar_pedidos(request):
     if request.method == "GET":
         pedidos_pendientes = PedidosCliente.objects.filter(estado_pedido="Pendiente")
         choferes_disponibles = ChoferAuto.objects.filter(disponibilidad=True)
-        viajes_en_viaje = Viaje.objects.filter(estado="En viaje")
+        viajes_en_viaje = Viaje.objects.filter(estado="Asignado")
         autos = Auto.objects.all()
         remiserias = Remiseria.objects.all()
         choferes = Chofer.objects.all()
@@ -408,28 +409,39 @@ def asignar_pedidos(request):
                 id_chofer = int(id_chofer)
 
                 pedido = get_object_or_404(PedidosCliente, id_pedido=id_pedido)
-                chofer_auto = get_object_or_404(ChoferAuto, id_chofer=id_chofer, disponibilidad=True)
 
+                # Obtener el registro correcto de ChoferAuto para este chofer
+                chofer_auto = ChoferAuto.objects.filter(id_chofer=id_chofer, disponibilidad=True).first()
+                if not chofer_auto:
+                    return JsonResponse({"status": "error", "message": "No se encontró un auto disponible para este chofer."}, status=400)
+
+                # Obtener el chofer relacionado
+                chofer = get_object_or_404(Chofer, id_chofer=chofer_auto.id_chofer.id_chofer)
+
+                # Crear el viaje con el chofer correcto y su auto asignado
                 viaje = Viaje.objects.create(
                     id_cliente=pedido.id_cliente,
+                    id_chofer=chofer,  # 🔹 Se usa el chofer correcto desde ChoferAuto
                     dir_salida=pedido.dir_salida,
                     dir_destino=pedido.dir_destino,
                     hora=timezone.now().time(),
                     fecha=timezone.now().date(),
-                    id_precio=get_object_or_404(Precio, id_precio=1),  # 🔹 Esto soluciona el problema
+                    id_precio=get_object_or_404(Precio, id_precio=1),
                     cod_tipo_pago=get_object_or_404(TipoPago, cod_tipo_pago=1),
                     id_remiseria=1,
                     inicio=timezone.now().time(),
                     fin=timezone.now().time(),
-                    patente=chofer_auto.patente,
-                    estado="En viaje"
+                    patente=chofer_auto.patente,  # 🔹 Se usa la patente del auto asignado
+                    estado="Asignado"
                 )
 
+                # Actualizar estado del pedido y la disponibilidad del chofer
                 pedido.estado_pedido = "Asignado"
                 pedido.save()
                 chofer_auto.disponibilidad = False
                 chofer_auto.save()
 
+                # Enviar notificación al cliente
                 cliente = pedido.id_cliente
                 usuario = User.objects.get(email=cliente.correo)
 
@@ -443,6 +455,7 @@ def asignar_pedidos(request):
 
             except Exception as e:
                 return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
 
         # Crear chofer
         elif operation == "crear_chofer":
@@ -573,11 +586,12 @@ def finalizar_viaje(request, id_viaje):
         # Obtener el viaje a través del ID
         viaje = get_object_or_404(Viaje, id_viaje=id_viaje)
 
-        # Obtener el auto relacionado con el viaje
-        auto = viaje.patente
+        # Obtener el chofer y el auto relacionados con el viaje
+        id_chofer = viaje.id_chofer.id_chofer  # 🔹 Obtenemos el chofer directamente desde Viaje
+        auto = viaje.patente  # 🔹 Obtenemos la patente desde Viaje
 
-        # Obtener el chofer asociado al auto
-        chofer_auto = get_object_or_404(ChoferAuto, patente=auto, disponibilidad=False)
+        # Obtener el ChoferAuto correspondiente a este chofer y auto
+        chofer_auto = get_object_or_404(ChoferAuto, patente=auto, id_chofer=id_chofer)
 
         # Cambiar el estado del viaje a 'Finalizado'
         viaje.estado = "Finalizado"
@@ -593,6 +607,7 @@ def finalizar_viaje(request, id_viaje):
     except Exception as e:
         # En caso de error, devolver un mensaje de error
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
 
 
 @login_required
@@ -699,17 +714,15 @@ def viaje(request):
         cliente = Cliente.objects.get(correo=request.user.email)
 
         # Buscar el viaje asignado
-        viaje = Viaje.objects.filter(id_cliente=cliente.id_cliente, estado="En viaje").first()
+        viaje = Viaje.objects.filter(id_cliente=cliente.id_cliente, estado="Asignado").first()
 
         if not viaje:
             return render(request, 'clientes/viaje.html', {'error': "No tienes un viaje en progreso."})
 
         # Obtener la información del chofer y del auto
-        chofer_auto = ChoferAuto.objects.get(patente=viaje.patente)
-        chofer = Chofer.objects.get(id_chofer=chofer_auto.id_chofer.id_chofer)
-        auto = Auto.objects.get(patente=viaje.patente)
+        chofer = get_object_or_404(Chofer, id_chofer=viaje.id_chofer.id_chofer)  # 🔹 Lo obtenemos directo de Viaje
+        auto = get_object_or_404(Auto, patente=viaje.patente)  # 🔹 Auto directo de Viaje
 
-        # Enviar los datos al template
         return render(request, 'clientes/viaje.html', {
             'viaje': viaje,
             'chofer': chofer,
@@ -720,12 +733,11 @@ def viaje(request):
         return render(request, 'clientes/viaje.html', {
             'error': f"El auto asociado al viaje con la patente '{viaje.patente}' no existe."
         })
-    except ChoferAuto.DoesNotExist:
-        return render(request, 'clientes/viaje.html', {'error': "No se encontró información del chofer para este auto."})
     except Chofer.DoesNotExist:
         return render(request, 'clientes/viaje.html', {'error': "No se encontró información del chofer."})
     except Exception as e:
         return render(request, 'clientes/viaje.html', {'error': str(e)})
+
     
 @login_required  
 def obtener_api_key(request):
@@ -777,7 +789,7 @@ def crear_auto(request):
         # Volvemos a cargar los datos necesarios para base_pedidos
         pedidos_pendientes = PedidosCliente.objects.filter(estado_pedido="Pendiente")
         choferes_disponibles = ChoferAuto.objects.filter(disponibilidad=True)
-        viajes_en_viaje = Viaje.objects.filter(estado="En viaje")
+        viajes_en_viaje = Viaje.objects.filter(estado="Asignado")
         autos = Auto.objects.all()
         remiserias = Remiseria.objects.all()
 
@@ -871,6 +883,127 @@ def eliminar_asignacion(request, id_chofer, patente):
 
     return redirect("administracion")
 
-@login_required
+@chofer_required
 def panel_chofer(request):
-    return render(request, "chofer/panel_chofer.html")
+    try:
+        # Obtener el cliente basado en el correo del usuario autenticado
+        cliente = Cliente.objects.filter(correo=request.user.email).first()
+        if not cliente:
+            return render(request, "chofer/panel_chofer.html", {"error": "Cliente no encontrado."})
+
+        # Obtener el chofer relacionado con el cliente
+        chofer = Chofer.objects.filter(id_cliente=cliente).first()
+        if not chofer:
+            return render(request, "chofer/panel_chofer.html", {"error": "Chofer no encontrado."})
+
+        # Verificar si hay un viaje asignado para este chofer con estado "Asignado"
+        viaje_asignado = Viaje.objects.filter(id_chofer=chofer, estado="Asignado").first()
+
+        return render(request, "chofer/panel_chofer.html", {
+            "chofer": chofer,
+            "viaje": viaje_asignado  # Será None si no tiene un viaje asignado
+        })
+
+    except Exception as e:
+        return render(request, "chofer/panel_chofer.html", {"error": str(e)})
+
+
+
+@csrf_exempt
+def actualizar_estado_chofer(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            disponible = data.get("disponible", False)
+
+            # Obtener el cliente basado en el correo del usuario autenticado
+            cliente = Cliente.objects.filter(correo=request.user.email).first()
+            if not cliente:
+                return JsonResponse({"status": "error", "message": "Cliente no encontrado."})
+
+            # Obtener el chofer relacionado con el cliente
+            chofer = Chofer.objects.filter(id_cliente=cliente).first()
+            if not chofer:
+                return JsonResponse({"status": "error", "message": "Chofer no encontrado."})
+
+            # Obtener el ChoferAuto relacionado con el chofer
+            chofer_auto = ChoferAuto.objects.filter(id_chofer=chofer).first()
+            if not chofer_auto:
+                return JsonResponse({"status": "error", "message": "No se encontró un registro en ChoferAuto para este chofer."})
+
+            # Actualizar disponibilidad
+            chofer_auto.disponibilidad = disponible
+            chofer_auto.save()
+
+            return JsonResponse({"status": "success", "message": "Estado actualizado correctamente"})
+
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": str(e)})
+
+    return JsonResponse({"status": "error", "message": "Método no permitido"}, status=405)
+
+
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+
+@login_required
+def verificar_viaje_asignado(request):
+    try:
+        # Obtener el cliente autenticado
+        cliente = Cliente.objects.get(correo=request.user.email)
+        chofer = Chofer.objects.get(id_cliente=cliente)
+
+        # Buscar si el chofer tiene un viaje con estado "Asignado"
+        viaje = Viaje.objects.filter(id_chofer=chofer, estado="Asignado").first()
+
+        if viaje:
+            return JsonResponse({
+                "asignado": True,
+                "id_viaje": viaje.id_viaje,
+                "dir_salida": viaje.dir_salida,
+                "dir_destino": viaje.dir_destino
+            })
+
+        return JsonResponse({"asignado": False})
+
+    except (Cliente.DoesNotExist, Chofer.DoesNotExist):
+        return JsonResponse({"asignado": False, "error": "No se encontró el chofer"}, status=400)
+    except Exception as e:
+        return JsonResponse({"asignado": False, "error": str(e)}, status=500)
+
+from django.views.decorators.csrf import csrf_exempt
+import json
+
+@csrf_exempt
+@login_required
+def cambiar_estado_viaje(request, id_viaje):
+    if request.method == "POST":
+        try:
+            # Obtener el viaje por ID
+            viaje = Viaje.objects.get(id_viaje=id_viaje)
+
+            # Validar que el usuario autenticado sea el chofer asignado
+            cliente = Cliente.objects.get(correo=request.user.email)
+            chofer = Chofer.objects.get(id_cliente=cliente)
+
+            if viaje.id_chofer != chofer:
+                return JsonResponse({"success": False, "error": "No autorizado"}, status=403)
+
+            # Leer los datos enviados en la petición
+            data = json.loads(request.body)
+            nuevo_estado = data.get("estado")
+
+            # Actualizar el estado del viaje
+            if nuevo_estado:
+                viaje.estado = nuevo_estado
+                viaje.save()
+                return JsonResponse({"success": True, "message": "Estado actualizado correctamente"})
+            else:
+                return JsonResponse({"success": False, "error": "Estado no proporcionado"}, status=400)
+
+        except Viaje.DoesNotExist:
+            return JsonResponse({"success": False, "error": "Viaje no encontrado"}, status=404)
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+    return JsonResponse({"success": False, "error": "Método no permitido"}, status=405)
