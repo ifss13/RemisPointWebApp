@@ -62,25 +62,45 @@
     
 </style>
 <style>
-    .form-check.form-switch {
-        display: flex;
-        flex-direction: column; /* Label arriba, input abajo */
-        align-items: center;
-        justify-content: center;
-        gap: 1em;
-        }
-    .form-check.form-switch input.form-check-input {
-        transform: scale(2);
-        }
-    .form-check.form-switch label.form-check-label {
-        font-size: 2rem;
-        text-align: center;
-        display: block;
-        margin: 0 auto;       /* Centrado horizontal */
-        padding: 0;           /* Elimina cualquier padding extra */
-        align-self: center;   /* Forzar el centrado en el flex container */
-        }
+    /* Contenedor principal */
+    .switch-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    /* Contenedor del label: centrado completo */
+    .switch-label-container {
+      width: 100%;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    /* Estilo del label */
+    .switch-label {
+      font-size: 2rem;
+      margin: 0;
+      /* Opcional: forzar centrado si hay estilos heredados */
+      display: block;
+      width: 100%;
+    }
+    /* Contenedor del input */
+    .switch-input-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .custom-switch-size .form-check-input {
+        transform: scale(1.5);
+        transform-origin: center center;
+    }
+  /* Opcional: ajustar el espacio vertical para que se vea bien */
+    .custom-switch-size .form-check {
+        margin: 0;
+    }
   </style>
+  
+  
+  
 
 
 <div class="container mt-4">
@@ -111,12 +131,17 @@
                 <h4 class="mt-3" style="margin: 2em">Esperando asignaciones de viaje</h4>
                 
                 <!-- Switch de disponibilidad -->
-                <div class="form-check form-switch mt-3">
-                    <input class="form-check-input" type="checkbox" id="disponibilidadSwitch" {% if chofer_auto.disponibilidad %}checked{% endif %}>
-                    <label class="form-check-label" for="disponibilidadSwitch" id="estado-label">
+                <!-- Switch de disponibilidad -->
+                <div class="d-flex flex-column align-items-center mt-3 custom-switch-size">
+                    <div id="estado-label" class="mb-2 fs-4 text-center">
                         {% if chofer_auto.disponibilidad %}Disponible{% else %}No disponible{% endif %}
-                    </label>
-                </div>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="disponibilidadSwitch" {% if chofer_auto.disponibilidad %}checked{% endif %}>
+                    </div>
+                  </div>
+                  
+                
             </div>
 
             <!-- Contenedor para el mapa (se muestra cuando sea necesario) -->
