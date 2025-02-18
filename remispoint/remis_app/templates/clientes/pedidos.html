@@ -4,12 +4,15 @@
 
 {% block content %}
 <style>
-    .home-container {
+    /* Contenedor principal */
+    .pedidos-container {
         display: flex;
+        flex-direction: row;
         justify-content: space-between;
         padding: 20px;
     }
 
+    /* Sección izquierda (formulario) */
     .left-section {
         width: 50%;
         padding-right: 20px;
@@ -26,6 +29,7 @@
         color: #555;
     }
 
+    /* Inputs y select */
     .input-group {
         margin-bottom: 15px;
         display: flex;
@@ -39,7 +43,7 @@
         width: 40%;
     }
 
-    .input-group input {
+    .input-group input, select {
         width: 60%;
         padding: 10px;
         font-size: 1rem;
@@ -48,20 +52,22 @@
         background-color: #f9f9f9;
     }
 
+    /* Botones */
     button {
         padding: 10px 20px;
         font-size: 1rem;
         border: none;
-        background-color: #007bff;
+        background-color: #fc7c44; /* Color principal de la app */
         color: white;
         cursor: pointer;
         border-radius: 5px;
     }
 
     button:hover {
-        background-color: #0056b3;
+        background-color: #e06733;
     }
 
+    /* Sección derecha (Mapa) */
     .right-section {
         width: 45%;
         background-color: #f0f0f0;
@@ -75,74 +81,92 @@
         border-radius: 15px;
     }
 
-    #registro-exitoso {
+    /* Mensajes de estado */
+    #registro-exitoso, #error-registro {
         font-family: 'Roboto', sans-serif;
         font-size: 20px;
         font-weight: bold;
-        color: green;
         margin-top: 15px;
         padding: 10px;
         border-radius: 5px;
         text-align: center;
+    }
+
+    #registro-exitoso {
+        color: green;
     }
 
     #error-registro {
-        font-family: 'Roboto', sans-serif;
-        font-size: 20px;
-        font-weight: bold;
         color: red;
-        margin-top: 15px;
-        padding: 10px;
-        border-radius: 5px;
-        text-align: center;
     }
 
+    /* Responsive: En móviles, mapa arriba y formulario abajo */
+    @media (max-width: 768px) {
+        .pedidos-container {
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .right-section {
+            width: 100%;
+            height: 300px; /* Reduce altura en móviles */
+            margin-bottom: 20px; /* Espaciado entre mapa y formulario */
+        }
+
+        .left-section {
+            width: 100%;
+        }
+    }
+    body {
+    padding-bottom: 35px; /* Espacio para el Bottom Navigation */
+    }
 </style>
 
-<div class="container home-container">
+<!-- Contenedor principal -->
+<div class="container pedidos-container">
+    <!-- Mapa (en móviles arriba, en escritorio a la derecha) -->
+    <div class="right-section">
+        <div id="map" class="map"></div>
+    </div>
+
+    <!-- Formulario de pedido -->
     <div class="left-section">
         <h1>Registrar Pedido</h1>
-        
         <h3>Selecciona los puntos en el mapa</h3>
         <input type="hidden" name="remiseria_id" value="{{ remiseria_id }}">
-        <br>
-        
+
         <label for="punto-partida">Punto de partida</label>
         <div class="input-group">
             <input type="text" id="punto-partida" placeholder="Ingrese punto de partida" readonly disabled>
         </div>
-        
+
         <label for="entrega">Destino</label>
         <div class="input-group">
             <input type="text" id="entrega" placeholder="Ingrese lugar de destino" readonly disabled>
         </div>
-                <!-- Lista desplegable para seleccionar el tipo de pago -->
-                <label for="tipo-pago">Método de Pago:</label>
-                <select id="tipo-pago" name="tipo_pago">
-                    <option value="">Seleccione un método de pago</option>
-                    {% for pago in tipos_pago %}
-                    <option value="{{ pago.cod_tipo_pago }}">{{ pago.descripcion }}</option>
-                    {% endfor %}
-                </select>
-        <br>
-        <br>
+
+        <!-- Método de Pago -->
+        <label for="tipo-pago">Método de Pago:</label>
+        <select id="tipo-pago" name="tipo_pago">
+            <option value="">Seleccione un método de pago</option>
+            {% for pago in tipos_pago %}
+            <option value="{{ pago.cod_tipo_pago }}">{{ pago.descripcion }}</option>
+            {% endfor %}
+        </select>
+
+        <br><br>
         <button class="btn btn-primary" onclick="registrarPedido()">Registrar Pedido</button>
         <button class="btn btn-secondary" onclick="limpiarMapa()">Limpiar Mapa</button>
 
-
-<!-- Campo oculto para guardar id_precio -->
-<input type="hidden" id="id_precio" name="id_precio">
-
+        <!-- Campo oculto para guardar id_precio -->
+        <input type="hidden" id="id_precio" name="id_precio">
 
         <div id="registro-exitoso" style="display: none;">¡Pedido registrado exitosamente!</div>
         <div id="error-registro" style="display: none;">Error al registrar el pedido. Intente nuevamente.</div>
     </div>
-
-    <div class="right-section">
-        <div id="map" class="map"></div>
-    </div>
 </div>
 
+<!-- Estilos y Scripts para el mapa -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
