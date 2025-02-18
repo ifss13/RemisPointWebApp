@@ -141,5 +141,19 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://5e64-2803-a920-842-4400-b061-40af-d725-6b09.ngrok-free.app"
+    "https://comic-presumably-dogfish.ngrok-free.app"
 ]
+
+
+MP_PUBLIC_KEY = os.getenv('MP_PUBLIC_KEY', 'APP_USR-6230e0e3-2ba6-478f-9814-2630b421b3d8')
+MP_CLIENT_ID = os.getenv('MP_CLIENT_ID', '889360435513211')
+MP_CLIENT_SECRET = os.getenv('MP_CLIENT_SECRET', 'fxqbU1OXJPpsTPnZHRvbaVRU2taehfKC')
+MP_ACCESS_TOKEN = os.getenv('MP_ACESS_TOKEN', 'APP_USR-889360435513211-021517-b0e41944ffc500bf962b5045441c2ad2-131987175')
+MP_REDIRECT_URI = os.getenv('MP_REDIRECT_URI', 'https://comic-presumably-dogfish.ngrok-free.app/mercadopago/callback/')
+SITE_URL = os.getenv('SITE_URL', 'https://comic-presumably-dogfish.ngrok-free.app')
+
+# Configuración del timezone en Argentina
+TIME_ZONE = "America/Argentina/Buenos_Aires"
+
+# Mantener la configuración de uso de timezone en True
+USE_TZ = False

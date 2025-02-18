@@ -127,6 +127,36 @@
 
         plotRoute();
     });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const idViaje = "{{ viaje.id_viaje }}";  // Obtener el ID del viaje desde Django
+        const encabezado = document.querySelector("h2");
+
+        function verificarEstado() {
+            fetch(`/verificar_estado_viaje/${idViaje}/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.estado === "Asignado") {
+                        encabezado.textContent = "Esperando que el chofer acepte el Viaje";
+                    } else if (data.estado === "En camino al cliente") {
+                        encabezado.textContent = "El chofer está en camino";
+                    } else if (data.estado === "En viaje") {
+                        encabezado.textContent = "Viaje en progreso";
+                    } else if (data.estado === "Finalizado") {
+                        if (idViaje) {  // ✅ Solo redirige si el idViaje es válido
+                            window.location.href = `/pagos/${idViaje}/`;
+                        } else {
+                            console.error("Error: idViaje no definido.");
+                        }
+                    }
+                })
+                .catch(error => console.error("Error al verificar el estado del viaje:", error));
+        }
+
+        setInterval(verificarEstado, 5000);
+    });
+
+
 </script>
 {% endblock %}
 

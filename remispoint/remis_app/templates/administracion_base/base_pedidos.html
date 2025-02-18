@@ -37,6 +37,7 @@
                                 <th>Cliente</th>
                                 <th>Salida</th>
                                 <th>Destino</th>
+                                <th>Accion</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -46,6 +47,7 @@
                                 <td>{{ pedido.id_cliente.nombre }}</td>
                                 <td>{{ pedido.dir_salida }}</td>
                                 <td>{{ pedido.dir_destino }}</td>
+                                <td><button class="btn btn-danger cancelar-pedido" data-pedido-id="{{ pedido.id_pedido }}">Cancelar</button></td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -125,13 +127,10 @@
                         <td>{{ viaje.dir_destino }}</td>
                         <td>{{ viaje.estado }}</td>
                         <td>
-                            
-                            <button onclick="finalizarViaje('{{ viaje.id_viaje }}')">Cancelar</button>
-                            
                         </td>
                         <td>
                             {% if viaje.estado == "Asignado" %}
-                                <button onclick="finalizarViaje('{{ viaje.id_viaje }}')">Finalizar</button>
+                                <button onclick="finalizarViaje('{{ viaje.id_viaje }}')">Cancelar</button>
                             {% endif %}
                         </td>
                     </tr>
@@ -289,5 +288,30 @@
         });
     });
 </script>
-
+<script>
+    document.querySelectorAll(".cancelar-pedido").forEach(button => {
+        button.addEventListener("click", function() {
+            let pedidoId = this.getAttribute("data-pedido-id");
+    
+            if (confirm("¿Estás seguro de que querés cancelar este pedido?")) {
+                fetch(`/cancelar_pedido_base/${pedidoId}/`, {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": "{{ csrf_token }}",
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert("Pedido cancelado por la base.");
+                        location.reload();  // Recargar la página para actualizar la lista
+                    } else {
+                        alert("Error al cancelar el pedido.");
+                    }
+                })
+                .catch(error => console.error("Error:", error));
+            }
+        });
+    });
+</script>
 {% endblock %}

@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 from django.contrib.auth import views as auth_views
 from remis_app.views import base_pedidos, no_autorizado
+import urllib.parse
 
 urlpatterns = [
     path('registro/', views.register, name='registro'),
@@ -40,4 +41,17 @@ urlpatterns = [
     path("chofer",views.panel_chofer, name='chofer'),
     path("verificar_viaje_asignado/", views.verificar_viaje_asignado, name="verificar_viaje_asignado"),
     path("cambiar_estado_viaje/<int:id_viaje>/", views.cambiar_estado_viaje, name="cambiar_estado_viaje"),
+    path("cancelar_pedido/<int:pedido_id>/", views.cancelar_pedido, name="cancelar_pedido"),
+    path("cancelar_pedido_base/<int:pedido_id>/", views.cancelar_pedido_base, name="cancelar_pedido_base"),
+    path('mercadopago/conectar/', views.conectar_mercadopago, name='conectar_mercadopago'),
+    path('mercadopago/callback/', views.mercadopago_callback, name='mercadopago_callback'),
+    path('obtener_precio/', views.obtener_precio, name='obtener_precio'),
+    path('obtener_id_precio/', views.obtener_id_precio, name='obtener_id_precio'),
+    path('verificar_estado_viaje/<int:id_viaje>/', views.verificar_estado_viaje, name='verificar_estado_viaje'),
+    path('pagos/<int:id_viaje>/', views.pagos, name='pagos'),
+    path('mp_webhook/', views.mp_webhook, name='mp_webhook'),
+    path('pagos_exitoso/<int:id_viaje>/', views.pagos_exitoso, name='pagos_exitoso'),
+    path('pagos_fallido/<int:id_viaje>/', views.pagos_fallido, name='pagos_fallido'),
+    path('pagos_pendiente/<int:id_viaje>/', views.pagos_pendiente, name='pagos_pendiente'),  # Webhook de MercadoPago
 ]
+

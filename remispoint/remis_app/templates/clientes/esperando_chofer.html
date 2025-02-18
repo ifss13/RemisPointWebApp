@@ -42,6 +42,7 @@
             
             {% endif %}
         </div>
+        <button id="cancelar-pedido" class="btn btn-danger" data-pedido-id="{{ pedido.id_pedido }}">Cancelar Pedido</button>
     {% endif %}
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.9.6/lottie.min.js"></script>
@@ -56,6 +57,15 @@
                     // Redirigir a viaje.html cuando el pedido está asignado
                     window.location.href = "/viaje/";
                 }
+                else if (data.estado_pedido === "Cancelado por el Cliente") {
+                    alert("Tu pedido ha sido cancelado.");
+                    window.location.href = "/home/";
+                }
+                else if (data.estado_pedido === "Cancelado por la Base") {
+                    alert("Tu pedido ha sido cancelado.");
+                    window.location.href = "/home/";
+                }
+
             })
             .catch(error => console.error('Error al verificar el estado:', error));
     }, 5000); // Verificar cada 5 segundos
@@ -71,5 +81,33 @@
     });
 </script>
 
+<script>
+    document.getElementById("cancelar-pedido").addEventListener("click", function() {
+        const pedidoId = "{{ pedido_id }}";
+    
+        if (!pedidoId) {
+            alert("Error: No se encontró el ID del pedido.");
+            return;
+        }
+    
+        if (confirm("¿Estás seguro de que querés cancelar el pedido?")) {
+            fetch(`/cancelar_pedido/${pedidoId}/`, {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": "{{ csrf_token }}",
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert("Pedido cancelado correctamente.");
+                } else {
+                    alert("Error al cancelar el pedido: " + data.error);
+                }
+            })
+            .catch(error => console.error("Error:", error));
+        }
+    });
+</script>
 {% endblock %}
 

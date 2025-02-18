@@ -21,6 +21,8 @@ from django.contrib.auth import update_session_auth_hash
 from remis_app.decorador import base_required, chofer_required
 from django.views.decorators.csrf import csrf_exempt
 from .forms import AutoForm
+import urllib.parse
+from django.utils.timezone import now
 
 ORS_API_KEY = '5b3ce3597851110001cf6248bbaa88fc959c42db9efc751597c03a47'
 
@@ -195,6 +197,8 @@ def pedidos(request):
             dir_destino = data.get("dir_destino")
 
             remiseria_id = data.get('id_remiseria')  # Cambié de GET a POST
+            id_precio = data.get("id_precio")  # ✅ Nuevo campo para el precio
+            cod_tipo_pago = data.get("cod_tipo_pago")  # ✅ Nuevo campo para el tipo de pago
 
             # Verificar si remiseria_id está presente
             if remiseria_id is None:
@@ -210,11 +214,21 @@ def pedidos(request):
             if not dir_salida or not dir_destino:
                 return JsonResponse({"status": "error", "message": "Por favor completa ambos campos."}, status=400)
 
+            # Validar que id_precio y cod_tipo_pago estén presentes
+            if not id_precio or not cod_tipo_pago:
+                return JsonResponse({"status": "error", "message": "Debe seleccionarse un precio y un método de pago."}, status=400)
+
             # Obtener el cliente relacionado con el usuario actual
             cliente = get_object_or_404(Cliente, correo=request.user.email)
 
             # Obtener la instancia de Remiseria usando el id
             remiseria = get_object_or_404(Remiseria, id_remiseria=remiseria_id)
+
+            # Obtener la instancia de Precio
+            precio = get_object_or_404(Precio, id_precio=id_precio)  # ✅ Obtener la instancia del precio
+
+            # Obtener la instancia de Tipo de Pago
+            tipo_pago = get_object_or_404(TipoPago, cod_tipo_pago=cod_tipo_pago)  # ✅ Obtener la instancia del tipo de pago
 
             # Crear el registro en la tabla PedidoCliente
             pedido = PedidosCliente.objects.create(
@@ -222,7 +236,9 @@ def pedidos(request):
                 dir_salida=dir_salida,
                 dir_destino=dir_destino,
                 estado_pedido="Pendiente",
-                id_remiseria=remiseria  # Aquí asignas la instancia de Remiseria
+                id_remiseria=remiseria,  # Aquí asignas la instancia de Remiseria
+                id_precio=precio,  # ✅ Guardamos el id_precio obtenido
+                cod_tipo_pago=tipo_pago  # ✅ Guardamos el tipo de pago seleccionado
             )
 
             # Devolver la URL a la que se debe redirigir el cliente
@@ -233,9 +249,12 @@ def pedidos(request):
 
     elif request.method == "GET":
         remiseria_id = request.GET.get('remiseria_id')  # Capturamos el remiseria_id de la URL
-        return render(request, "clientes/pedidos.html", {'remiseria_id': remiseria_id})
+        tipos_pago = TipoPago.objects.all()  # ✅ Obtener todos los métodos de pago disponibles
+
+        return render(request, "clientes/pedidos.html", {'remiseria_id': remiseria_id, 'tipos_pago': tipos_pago})
 
     return JsonResponse({"status": "error", "message": "Método no permitido."}, status=405)
+
 
 
 
@@ -285,6 +304,12 @@ def verificar_estado_pedido(request, pedido_id):
 
         elif pedido.estado_pedido == "Asignado":
             return JsonResponse({'estado_pedido': 'Asignado'})
+        
+        elif pedido.estado_pedido == "Cancelado por el Cliente":
+            return JsonResponse({'estado_pedido': 'Cancelado por el Cliente'})
+        
+        elif pedido.estado_pedido == "Cancelado por la Base":
+            return JsonResponse({'estado_pedido': 'Cancelado por la Base'})
 
     except PedidosCliente.DoesNotExist:
         return JsonResponse({'estado_pedido': 'Error', 'message': 'Pedido no encontrado'}, status=404)
@@ -396,7 +421,6 @@ def asignar_pedidos(request):
                 messages.error(request, f"Error al eliminar el auto: {str(e)}")
             return redirect("administracion")
 
-        # Lógica original para asignar pedidos
         elif operation == "asignar_pedido":
             try:
                 id_pedido = request.POST.get("id_pedido")
@@ -418,6 +442,10 @@ def asignar_pedidos(request):
                 # Obtener el chofer relacionado
                 chofer = get_object_or_404(Chofer, id_chofer=chofer_auto.id_chofer.id_chofer)
 
+                # ✅ Obtener el precio y el tipo de pago desde el pedido
+                id_precio = pedido.id_precio.id_precio  # Obtener el id_precio del pedido
+                cod_tipo_pago = pedido.cod_tipo_pago.cod_tipo_pago  # Obtener el tipo de pago del pedido
+
                 # Crear el viaje con el chofer correcto y su auto asignado
                 viaje = Viaje.objects.create(
                     id_cliente=pedido.id_cliente,
@@ -426,8 +454,8 @@ def asignar_pedidos(request):
                     dir_destino=pedido.dir_destino,
                     hora=timezone.now().time(),
                     fecha=timezone.now().date(),
-                    id_precio=get_object_or_404(Precio, id_precio=1),
-                    cod_tipo_pago=get_object_or_404(TipoPago, cod_tipo_pago=1),
+                    id_precio=get_object_or_404(Precio, id_precio=id_precio),  # ✅ Se obtiene el precio del pedido
+                    cod_tipo_pago=get_object_or_404(TipoPago, cod_tipo_pago=cod_tipo_pago),  # ✅ Se obtiene el tipo de pago del pedido
                     id_remiseria=1,
                     inicio=timezone.now().time(),
                     fin=timezone.now().time(),
@@ -442,19 +470,20 @@ def asignar_pedidos(request):
                 chofer_auto.save()
 
                 # Enviar notificación al cliente
-                cliente = pedido.id_cliente
-                usuario = User.objects.get(email=cliente.correo)
+                # cliente = pedido.id_cliente
+                # usuario = User.objects.get(email=cliente.correo)
 
-                Notificacion.objects.create(
-                    usuario=usuario,
-                    mensaje="Tu viaje ha sido asignado, el chofer está en camino."
-                )
+                # Notificacion.objects.create(
+                    # usuario=usuario,
+                    # mensaje="Tu viaje ha sido asignado, el chofer está en camino."
+                #)
 
                 messages.success(request, "Pedido asignado correctamente.")
                 return redirect("administracion")
 
             except Exception as e:
                 return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
 
 
         # Crear chofer
@@ -594,7 +623,7 @@ def finalizar_viaje(request, id_viaje):
         chofer_auto = get_object_or_404(ChoferAuto, patente=auto, id_chofer=id_chofer)
 
         # Cambiar el estado del viaje a 'Finalizado'
-        viaje.estado = "Finalizado"
+        viaje.estado = "Cancelado por la Base"
         viaje.save()
 
         # Cambiar la disponibilidad del chofer a True
@@ -602,7 +631,7 @@ def finalizar_viaje(request, id_viaje):
         chofer_auto.save()
 
         # Devolver una respuesta JSON exitosa
-        return JsonResponse({"status": "success", "message": "Viaje finalizado correctamente."})
+        return JsonResponse({"status": "success", "message": "Viaje cancelado correctamente."})
 
     except Exception as e:
         # En caso de error, devolver un mensaje de error
@@ -994,10 +1023,19 @@ def cambiar_estado_viaje(request, id_viaje):
             nuevo_estado = data.get("estado")
             print("Nuevo estado recibido:", nuevo_estado)
 
+            
+            # ✅ Actualizar la hora de inicio cuando el viaje cambia a "En viaje"
+            if nuevo_estado == "En viaje":
+                viaje.inicio = now().time()
+
+            # ✅ Actualizar la hora de finalización cuando el viaje cambia a "Finalizado"
+            if nuevo_estado == "Finalizado":
+                viaje.fin = now().time()
+
             # Actualizar el estado del viaje
             if nuevo_estado:
                 viaje.estado = nuevo_estado
-                viaje.save(update_fields=["estado"])
+                viaje.save(update_fields=["estado", "inicio", "fin"])
                 # Refrescar el objeto desde la DB para confirmar la actualización
                 viaje.refresh_from_db()
                 print("Estado actualizado en DB:", viaje.estado)
@@ -1012,3 +1050,302 @@ def cambiar_estado_viaje(request, id_viaje):
 
     return JsonResponse({"success": False, "error": "Método no permitido"}, status=405)
 
+
+@csrf_exempt
+def cancelar_pedido(request, pedido_id):
+    if request.method == "POST":
+        try:
+            pedido = get_object_or_404(PedidosCliente, id_pedido=pedido_id)
+
+            if pedido.estado_pedido == "Pendiente":
+                pedido.estado_pedido = "Cancelado por el Cliente"
+                pedido.save()
+                return JsonResponse({"success": True, "estado_pedido": "Cancelado por el Cliente"})
+            else:
+                return JsonResponse({"success": False, "error": "No se puede cancelar un pedido en este estado."})
+
+        except PedidosCliente.DoesNotExist:
+            return JsonResponse({"success": False, "error": "Pedido no encontrado."}, status=404)
+        
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+    return JsonResponse({"success": False, "error": "Método no permitido."}, status=405)
+
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+from remis_app.models import PedidosCliente
+from django.views.decorators.csrf import csrf_exempt
+
+@csrf_exempt
+def cancelar_pedido_base(request, pedido_id):
+    if request.method == "POST":
+        try:
+            pedido = get_object_or_404(PedidosCliente, id_pedido=pedido_id)
+
+            if pedido.estado_pedido == "Pendiente":
+                pedido.estado_pedido = "Cancelado por la Base"
+                pedido.save()
+                return JsonResponse({"success": True, "estado_pedido": "Cancelado por la Base"})
+            else:
+                return JsonResponse({"success": False, "error": "No se puede cancelar un pedido en este estado."})
+
+        except PedidosCliente.DoesNotExist:
+            return JsonResponse({"success": False, "error": "Pedido no encontrado."}, status=404)
+        
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+    return JsonResponse({"success": False, "error": "Método no permitido."}, status=405)
+
+
+import urllib.parse
+from django.shortcuts import redirect
+from django.conf import settings
+
+def conectar_mercadopago(request):
+    """Redirige al usuario a la autorización de Mercado Pago SIN PKCE"""
+    user = request.user
+    if not user.is_authenticated:
+        return redirect('login')
+
+    auth_url = (
+        f"https://auth.mercadopago.com/authorization"
+        f"?response_type=code"
+        f"&client_id={settings.MP_CLIENT_ID}"
+        f"&redirect_uri={urllib.parse.quote(settings.MP_REDIRECT_URI)}"
+        f"&scope=offline_access%20read"
+    )
+
+    return redirect(auth_url)
+
+
+import requests
+from django.http import JsonResponse
+from django.shortcuts import redirect
+from django.contrib.auth.decorators import login_required
+from remis_app.models import Chofer, Cliente
+from django.conf import settings
+
+@login_required
+def mercadopago_callback(request):
+    """Captura el código de autorización, obtiene el user_id del chofer y lo guarda"""
+    if 'code' not in request.GET:
+        return JsonResponse({'error': 'No authorization code provided'}, status=400)
+
+    auth_code = request.GET['code']
+
+    # URL de Mercado Pago para obtener el mp_user_id
+    token_url = "https://api.mercadopago.com/oauth/token"
+
+    data = {
+        'client_id': settings.MP_CLIENT_ID,
+        'client_secret': settings.MP_CLIENT_SECRET,
+        'code': auth_code,
+        'grant_type': 'authorization_code',
+        'redirect_uri': settings.MP_REDIRECT_URI,
+    }
+
+    headers = {
+        "Content-Type": "application/x-www-form-urlencoded"
+    }
+
+    response = requests.post(token_url, data=data, headers=headers)
+
+    if response.status_code != 200:
+        print("ERROR Mercado Pago:", response.json())  # ✅ Ver qué está fallando exactamente
+        return JsonResponse({
+            'error': 'Failed to obtain access token',
+            'status_code': response.status_code,
+            'response': response.json()
+        }, status=400)
+
+    token_data = response.json()
+    mp_user_id = token_data.get('user_id')  # ✅ Obtenemos el mp_user_id del chofer
+
+    # 📌 PASO 1: Buscar el cliente usando el email del usuario autenticado
+    try:
+        cliente = Cliente.objects.get(correo=request.user.email)
+    except Cliente.DoesNotExist:
+        return JsonResponse({'error': 'Cliente no encontrado'}, status=400)
+
+    # 📌 PASO 2: Buscar el chofer asociado al cliente
+    try:
+        chofer = Chofer.objects.get(id_cliente=cliente.id_cliente)
+    except Chofer.DoesNotExist:
+        return JsonResponse({'error': 'Chofer no encontrado'}, status=400)
+
+    # 📌 PASO 3: Asignar el nuevo mp_user_id y guardar
+    chofer.mp_user_id = mp_user_id
+    chofer.save()
+
+    return redirect('chofer')  # Redirigir al panel del chofer
+
+from django.http import JsonResponse
+from remis_app.models import Precio
+
+def obtener_precio(request):
+    """Recibe la distancia, la redondea y busca el precio en la base de datos"""
+    distancia_km = request.GET.get('distancia', None)
+
+    if distancia_km is None:
+        return JsonResponse({'error': 'Distancia no proporcionada'}, status=400)
+
+    try:
+        # Redondear la distancia a 1 decimal
+        distancia_redondeada = round(float(distancia_km), 1)
+
+        # Buscar el precio en la base de datos según la descripción (redondeo a string)
+        precio = Precio.objects.filter(descripcion=str(distancia_redondeada)).first()
+
+        if not precio:
+            return JsonResponse({'error': 'No se encontró un precio para esta distancia'}, status=404)
+
+        return JsonResponse({'precio': precio.precio})
+
+    except ValueError:
+        return JsonResponse({'error': 'Distancia inválida'}, status=400)
+
+
+def obtener_id_precio(request):
+    """Recibe la distancia en km y devuelve el id_precio correspondiente en la tabla Precio."""
+    distancia_km = request.GET.get('distancia', None)
+
+    if distancia_km is None:
+        return JsonResponse({'error': 'Distancia no proporcionada'}, status=400)
+
+    try:
+        # Redondear la distancia a 1 decimal
+        distancia_redondeada = round(float(distancia_km), 1)
+
+        # Convertir la distancia a string para compararla con "descripcion" en la tabla Precio
+        distancia_str = str(distancia_redondeada)
+
+        # Buscar el id_precio basado en la descripción de la distancia
+        precio = Precio.objects.filter(descripcion=distancia_str).first()
+
+        if not precio:
+            return JsonResponse({'error': 'No se encontró un id_precio para esta distancia'}, status=404)
+
+        return JsonResponse({'id_precio': precio.id_precio})
+
+    except ValueError:
+        return JsonResponse({'error': 'Distancia inválida'}, status=400)
+
+
+@login_required
+def verificar_estado_viaje(request, id_viaje):
+    """Devuelve el estado actual del viaje para actualizar dinámicamente la interfaz del cliente."""
+    viaje = get_object_or_404(Viaje, id_viaje=id_viaje)
+
+    return JsonResponse({"estado": viaje.estado})
+
+from django.shortcuts import render, get_object_or_404
+from remis_app.models import Viaje
+
+import mercadopago
+
+import json
+import mercadopago
+from django.conf import settings
+from django.shortcuts import render, get_object_or_404
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+from remis_app.models import Viaje, Chofer
+
+@login_required
+def pagos(request, id_viaje):
+    """Vista para mostrar el resumen del viaje y generar el pago si es con MercadoPago."""
+    print(f"🔎 Buscando viaje con ID: {id_viaje}")
+    viaje = get_object_or_404(Viaje, id_viaje=id_viaje)
+    print(f"✅ Viaje encontrado: {viaje}")
+
+    preference_id = None
+    if viaje.cod_tipo_pago.cod_tipo_pago == 3:
+        print("✅ El método de pago es MercadoPago.")
+        chofer = get_object_or_404(Chofer, id_chofer=viaje.id_chofer.id_chofer)
+        print(f"🔎 Buscando chofer con ID: {viaje.id_chofer.id_chofer}")
+
+        if chofer.mp_user_id:
+            print(f"✅ Chofer encontrado con MP_USER_ID: {chofer.mp_user_id}")
+
+            try:
+                sdk = mercadopago.SDK(settings.MP_ACCESS_TOKEN)
+                print(f"🔎 Usando ACCESS_TOKEN: {settings.MP_ACCESS_TOKEN}")
+
+                preference_data = {
+                    "items": [
+                        {
+                            "title": "Pago del viaje",
+                            "quantity": 1,
+                            "currency_id": "ARS",
+                            "unit_price": float(viaje.id_precio.precio)
+                        }
+                    ],
+                    "payer": {
+                        "email": request.user.email
+                    },
+                    "collector_id": int(chofer.mp_user_id) if chofer.mp_user_id else None,
+                    "external_reference": str(viaje.id_viaje),
+                    "notification_url": f"{settings.SITE_URL}/mp_webhook/",
+                    "auto_return": "approved",
+                    "back_urls": {
+                        "success": f"{settings.SITE_URL}/pagos_exitoso/{viaje.id_viaje}/",
+                        "failure": f"{settings.SITE_URL}/pagos_fallido/{viaje.id_viaje}/",
+                        "pending": f"{settings.SITE_URL}/pagos_pendiente/{viaje.id_viaje}/"
+                    }
+                }
+
+                print("🔎 Datos enviados a MercadoPago:", json.dumps(preference_data, indent=4))
+
+                preference_response = sdk.preference().create(preference_data)
+                print("🔎 Respuesta completa de MercadoPago:", preference_response)
+
+                if "response" in preference_response and "id" in preference_response["response"]:
+                    preference_id = preference_response["response"]["id"]
+                    print(f"✅ Preference ID generado correctamente: {preference_id}")
+                else:
+                    print("🚨 Error: No se pudo obtener preference_id de MercadoPago.")
+                    print(f"❌ Respuesta de MercadoPago: {preference_response}")
+
+            except Exception as e:
+                print(f"🚨 Error al generar la preferencia de pago: {str(e)}")
+
+    return render(request, "clientes/pagos.html", {"viaje": viaje, "preference_id": preference_id})
+
+
+
+
+@csrf_exempt
+def mp_webhook(request):
+    """Procesa las notificaciones de pago de MercadoPago."""
+    try:
+        data = json.loads(request.body)
+        external_reference = data.get("external_reference")
+        payment_status = data.get("status")
+
+        if external_reference and payment_status:
+            viaje = Viaje.objects.get(id_viaje=external_reference)
+            if payment_status == "approved":
+                viaje.estado = "Pago Confirmado"
+                viaje.save(update_fields=["estado"])
+
+        return JsonResponse({"success": True})
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+@login_required
+def pagos_exitoso(request, id_viaje):
+    """Vista cuando el pago se completa con éxito."""
+    return render(request, "clientes/pagos_exitoso.html", {"id_viaje": id_viaje})
+
+@login_required
+def pagos_fallido(request, id_viaje):
+    """Vista cuando el pago falla."""
+    return render(request, "clientes/pagos_fallido.html", {"id_viaje": id_viaje})
+
+@login_required
+def pagos_pendiente(request, id_viaje):
+    """Vista cuando el pago queda pendiente."""
+    return render(request, "clientes/pagos_pendiente.html", {"id_viaje": id_viaje})

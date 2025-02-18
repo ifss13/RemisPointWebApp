@@ -114,6 +114,9 @@
         <li class="nav-item">
             <a class="nav-link" id="registro-tab" data-bs-toggle="tab" href="#registro">Registro de Viajes</a>
         </li>
+        <li class="nav-item">
+            <a class="nav-link" id="conexiones-tab" data-bs-toggle="tab" href="#conexiones">Conexiones</a>
+        </li>
     </ul>
 
     <div class="tab-content mt-3">
@@ -153,6 +156,12 @@
         <!-- Pestaña "Registro de Viajes" -->
         <div class="tab-pane fade text-center" id="registro">
             <p class="mt-3">En construcción...</p>
+        </div>
+        <!-- Pestaña "Conexiones" -->
+        <div class="tab-pane fade text-center" id="conexiones">
+            <a href="{% url 'conectar_mercadopago' %}" class="btn btn-primary">
+                Conectar con Mercado Pago
+            </a>         
         </div>
     </div>
 </div>

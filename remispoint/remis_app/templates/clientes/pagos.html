@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block title %}Pago del Viaje{% endblock %}
+
+{% block content %}
+<div class="container text-center mt-5">
+    <h2>Resumen del Viaje</h2>
+    
+    <div class="card mt-3">
+        <div class="card-body">
+            <p><strong>Salida:</strong> {{ viaje.dir_salida }}</p>
+            <p><strong>Destino:</strong> {{ viaje.dir_destino }}</p>
+            <p><strong>Precio:</strong> ${{ viaje.id_precio.precio }}</p>
+            <p><strong>Método de Pago:</strong> {{ viaje.cod_tipo_pago.descripcion }}</p>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        {% if viaje.cod_tipo_pago.cod_tipo_pago == 3 and preference_id %}
+        <p>Paga el viaje con MercadoPago:</p>
+        <a href="https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id={{ preference_id }}" 
+           class="btn btn-primary">Pagar con MercadoPago</a>
+    {% else %}
+        <p>Este viaje se paga con {{ viaje.cod_tipo_pago.descripcion }}. Por favor, realice el pago directamente al chofer.</p>
+    {% endif %}
+    
+
+    </div>
+
+    <div class="mt-4">
+        <a href="/" class="btn btn-secondary">Volver al Inicio</a>
+    </div>
+</div>
+{% endblock %}
+

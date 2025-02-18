@@ -116,8 +116,23 @@
         <div class="input-group">
             <input type="text" id="entrega" placeholder="Ingrese lugar de destino" readonly disabled>
         </div>
+                <!-- Lista desplegable para seleccionar el tipo de pago -->
+                <label for="tipo-pago">Método de Pago:</label>
+                <select id="tipo-pago" name="tipo_pago">
+                    <option value="">Seleccione un método de pago</option>
+                    {% for pago in tipos_pago %}
+                    <option value="{{ pago.cod_tipo_pago }}">{{ pago.descripcion }}</option>
+                    {% endfor %}
+                </select>
+        <br>
+        <br>
         <button class="btn btn-primary" onclick="registrarPedido()">Registrar Pedido</button>
         <button class="btn btn-secondary" onclick="limpiarMapa()">Limpiar Mapa</button>
+
+
+<!-- Campo oculto para guardar id_precio -->
+<input type="hidden" id="id_precio" name="id_precio">
+
 
         <div id="registro-exitoso" style="display: none;">¡Pedido registrado exitosamente!</div>
         <div id="error-registro" style="display: none;">Error al registrar el pedido. Intente nuevamente.</div>
@@ -141,6 +156,7 @@
     var marcadorPartida, marcadorDestino;
     var coordsPartida = null, coordsDestino = null;
     var marcadoresColocados = 0;
+    var rutaAnterior = null;  // ✅ Declaramos la variable para evitar errores
 
     function obtenerDireccion(lat, lon, tipo) {
         var url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`;
@@ -190,6 +206,9 @@
                 marcadorDestino = crearMarcador(lat, lon, true);
                 coordsDestino = { lat: lat, lon: lon };
                 obtenerDireccion(lat, lon, 'destino');
+
+                // ✅ Se ejecuta automáticamente el cálculo de la distancia y obtención de id_precio
+                calcularDistanciaYPrecio();
             }
             marcadoresColocados++;
         }
@@ -210,13 +229,69 @@
         document.getElementById('error-registro').style.display = "none";
     }
 
+    function calcularDistanciaYPrecio() {
+        if (!coordsPartida || !coordsDestino) {
+            return;
+        }
+
+        var coordsPartidaAPI = [coordsPartida.lon, coordsPartida.lat];
+        var coordsDestinoAPI = [coordsDestino.lon, coordsDestino.lat];
+
+        var url = `https://api.openrouteservice.org/v2/directions/driving-car?api_key=5b3ce3597851110001cf6248bbaa88fc959c42db9efc751597c03a47&start=${coordsPartidaAPI[0]},${coordsPartidaAPI[1]}&end=${coordsDestinoAPI[0]},${coordsDestinoAPI[1]}`;
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data.features && data.features.length > 0) {
+                    var route = data.features[0].geometry.coordinates;
+                    var latLngs = route.map(coord => [coord[1], coord[0]]);
+
+                    if (rutaAnterior) {
+                        map.removeLayer(rutaAnterior);
+                    }
+
+                    rutaAnterior = L.polyline(latLngs, { color: 'blue' }).addTo(map);
+                    map.fitBounds(rutaAnterior.getBounds());
+
+                    var distancia = data.features[0].properties.segments[0].distance / 1000; // Convertir a km
+                    var distanciaRedondeada = Math.round(distancia * 10) / 10; // Redondear a 1 decimal
+
+                    // ✅ Si la distancia es menor a 1.0, la establecemos en 1.0
+                    if (distanciaRedondeada < 1.0) {
+                        distanciaRedondeada = 1.0;
+                    }
+
+                    console.log(`Distancia redondeada para la consulta: ${distanciaRedondeada}`); // Para debug
+
+                    // ✅ Usamos la nueva vista obtener_id_precio en lugar de obtener_precio
+                    fetch(`/obtener_id_precio/?distancia=${distanciaRedondeada}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.id_precio) {
+                                document.getElementById('id_precio').value = data.id_precio;
+                            } else {
+                                alert("No se encontró un id_precio para esta distancia.");
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error al obtener id_precio:', error);
+                        });
+                }
+            })
+            .catch(error => {
+                console.error('Error al obtener la ruta:', error);
+            });
+    }
+
     function registrarPedido() {
         const dirSalida = document.getElementById("punto-partida").value;
         const dirDestino = document.getElementById("entrega").value;
         const remiseriaId = new URLSearchParams(window.location.search).get("remiseria_id");
+        const idPrecio = document.getElementById("id_precio").value;
+        const tipoPago = document.getElementById("tipo-pago").value;
 
-        if (!dirSalida || !dirDestino || !remiseriaId) {
-            alert("Por favor, selecciona tanto el punto de partida, el destino y una remisería.");
+        if (!dirSalida || !dirDestino || !remiseriaId || !idPrecio || !tipoPago) {
+            alert("Por favor, asegúrate de haber seleccionado el destino para calcular el precio y haber elegido un método de pago.");
             return;
         }
 
@@ -229,7 +304,9 @@
             body: JSON.stringify({
                 dir_salida: dirSalida,
                 dir_destino: dirDestino,
-                id_remiseria: remiseriaId
+                id_remiseria: remiseriaId,
+                id_precio: idPrecio,  // ✅ Se envía el id_precio obtenido
+                cod_tipo_pago: tipoPago  // ✅ Se envía el método de pago seleccionado
             })
         })
         .then(response => response.json())
@@ -246,4 +323,5 @@
         });
     }
 </script>
+
 {% endblock %}

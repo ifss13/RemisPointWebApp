@@ -269,7 +269,6 @@
         }
     }
 
-    // Función para ver la ruta y calcular el precio estimado
     function verRuta() {
         if (!coordsPartida || !coordsDestino) {
             alert('Por favor, coloque ambos marcadores en el mapa.');
@@ -295,15 +294,29 @@
                     rutaAnterior = L.polyline(latLngs, { color: 'blue' }).addTo(map);
                     map.fitBounds(rutaAnterior.getBounds());
 
-                    var distancia = data.features[0].properties.segments[0].distance;
-                    var valor = distancia <= 1500 ? 2000 : 2000 + Math.ceil((distancia - 1500) / 1000) * 500;
-                    document.getElementById('valor-estimado').innerText = `Precio estimado: $${valor}`;
+                    var distancia = data.features[0].properties.segments[0].distance / 1000; // Convertir a km
+                    var distanciaRedondeada = Math.round(distancia * 10) / 10; // Redondear a 1 decimal
+
+                    // Petición AJAX a Django para obtener el precio
+                    fetch(`/obtener_precio/?distancia=${distanciaRedondeada}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.precio) {
+                                document.getElementById('valor-estimado').innerText = `Precio estimado: $${data.precio}`;
+                            } else {
+                                document.getElementById('valor-estimado').innerText = "No se encontró un precio para esta distancia.";
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error al obtener el precio:', error);
+                        });
                 }
             })
             .catch(error => {
                 console.error('Error al obtener la ruta:', error);
             });
     }
+
 
     // Función para limpiar el mapa y reiniciar valores
     function limpiarMapa() {

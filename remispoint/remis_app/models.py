@@ -54,6 +54,7 @@ class Chofer(models.Model):
     licencia = models.ImageField(upload_to='choferes/licencias/', blank=True, null=True)
     foto = models.ImageField(upload_to='choferes/foto/', blank=True, null=True)
     id_cliente = models.ForeignKey(Cliente,on_delete=models.CASCADE, db_column="id_cliente")
+    mp_user_id = models.CharField(max_length=255)
     class Meta:
         db_table = 'Chofer'
         managed = False
@@ -180,7 +181,8 @@ class PedidosCliente(models.Model):
     id_remiseria = models.ForeignKey(Remiseria,         
         on_delete=models.CASCADE,
         db_column="id_remiseria")
-
+    id_precio = models.ForeignKey(Precio, db_column="id_precio", on_delete=models.SET_NULL, null=True)  
+    cod_tipo_pago = models.ForeignKey(TipoPago, db_column="cod_tipo_pago",  on_delete=models.SET_NULL, null=True)
 
     class Meta:
         db_table = "PedidoCliente"
