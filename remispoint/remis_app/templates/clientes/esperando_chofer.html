@@ -35,14 +35,16 @@
                     </div>
                 </div>
             {% else %}
-            <div style="display: flex; flex-direction: column; align-items: flex-start;">
+            <div style="display: flex; flex-direction: column; align-items: center;">
                 <h2>Esperando asignación de chofer...</h2>
-                <div id="lottie-animacion" style="width: 30vw; height: 30vw; max-width: 500px;"></div>
+                <div id="lottie-animacion" style="width: 100vw; height: 100vw; max-width: 500px;"></div>
             </div>
             
             {% endif %}
         </div>
+        <div style="display: flex; flex-direction: column; align-items: center;">
         <button id="cancelar-pedido" class="btn btn-danger" data-pedido-id="{{ pedido.id_pedido }}">Cancelar Pedido</button>
+        </div>  
     {% endif %}
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.9.6/lottie.min.js"></script>
@@ -50,7 +52,7 @@
 <script>
     const pedidoId = "{{ pedido_id }}";  // Asegúrate de que pedido_id esté disponible en el contexto
     setInterval(() => {
-        fetch(`/verificar_pedido/${pedidoId}/`)
+        fetch(`/verificar_estado_pedido/${pedidoId}/`)
             .then(response => response.json())
             .then(data => {
                 if (data.estado_pedido === 'Asignado') {

@@ -14,6 +14,13 @@
                 
             {% endif %}
         </div>
+        <div class="text-end">
+            {% if es_chofer %}
+            <a href="{% url 'chofer' %}" class="btn btn-primary">Panel de Chofer</a>
+            {% else %}
+                
+            {% endif %}
+        </div>
     </div>
     <ul class="nav nav-tabs" id="panelCuentaTabs" role="tablist">
         <li class="nav-item" role="presentation">
