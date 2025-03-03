@@ -5,9 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RemisPoint</title>
     {% load static %}
+    <!-- Favicon clásico -->
+    <link rel="icon" type="image/x-icon" href="{% static 'images/favicon.ico' %}">
+
+    <!-- Favicon para navegadores modernos -->
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'images/favicon-32x32.png' %}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'images/favicon-16x16.png' %}">
+
+    <!-- Icono para dispositivos Android -->
+    <link rel="icon" type="image/png" sizes="192x192" href="{% static 'images/android-chrome-192x192.png' %}">
+    <link rel="icon" type="image/png" sizes="512x512" href="{% static 'images/android-chrome-512x512.png' %}">
+
+    <!-- Icono para dispositivos Apple (iPhone, iPad) -->
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'images/apple-touch-icon.png' %}">
+
+    <!-- Archivo de configuración para PWA -->
+    <link rel="manifest" href="{% static 'images/site.webmanifest' %}">
     <!-- Agregar Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+        window.OneSignalDeferred = window.OneSignalDeferred || [];
+        OneSignalDeferred.push(async function(OneSignal) {
+            await OneSignal.init({
+            appId: "0406f65d-0560-4e90-94f4-f2c3a52f61f4",
+            });
+        var userID =  OneSignal.User.PushSubscription.id;
+        console.log("USERID:" + userID);
+        document.getElementById('fcm_token').value = userID; // Asigna el userID al campo fcm_token
+        });
+
+    </script>
 
     <style>
         /* Cambiar el color de la navbar */
@@ -171,7 +200,9 @@
             color: #f56b2a !important;
         }
 
-
+        .navbar .fa-bell {
+            color: white !important;
+        }
 
     </style>
 
@@ -363,7 +394,7 @@
             }
 
             // Cargar notificaciones cada 5 segundos
-            setInterval(cargarNotificaciones, 20000);
+            setInterval(cargarNotificaciones, 100000);
 
             // Cargar notificaciones al iniciar
             cargarNotificaciones();
@@ -374,25 +405,25 @@
 <nav class="navbar fixed-bottom bg-light border-top d-lg-none">
     <div class="container d-flex justify-content-around py-2">
         <a href="/" class="nav-link text-center">
-            <i class="fas fa-home"></i><br>Inicio
+            <i class="fas fa-home"></i><br>
         </a>
         {% if user.is_authenticated %}
         <a href="/remiseria" class="nav-link text-center">
-            <i class="fas fa-car"></i><br>Pedidos
+            <i class="fas fa-car"></i><br>
         </a>
         {% else %}
         <a href="{% url 'login' %}" class="nav-link text-center">
-            <i class="fas fa-car"></i><br>Login
+            <i class="fas fa-car"></i><br>
         </a>
         {% endif %}
 
         {% if user.is_authenticated %}
         <a href="{% url 'panel_cuenta' %}" class="nav-link text-center">
-            <i class="fas fa-user"></i><br>Cuenta
+            <i class="fas fa-user"></i><br>
         </a>
         {% else %}
         <a href="{% url 'login' %}" class="nav-link text-center">
-            <i class="fas fa-user"></i><br>Login
+            <i class="fas fa-user"></i><br>
         </a>
         {% endif %}
     </div>

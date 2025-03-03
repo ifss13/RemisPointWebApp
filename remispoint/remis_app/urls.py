@@ -3,6 +3,7 @@ from . import views
 from django.contrib.auth import views as auth_views
 from remis_app.views import no_autorizado
 import urllib.parse
+from django.views.generic import TemplateView
 
 urlpatterns = [
     path('', views.home, name='home'),  # Página de inicio si el usuario va a la raíz
@@ -19,6 +20,9 @@ urlpatterns = [
     path("", include("remis_app.vistas.chofer.urls")),
     path("", include("remis_app.vistas.base.urls")),
     path("", include("remis_app.vistas.mp_auth.urls")),
+    path('enviar-notificacion/', views.enviar_notificacion, name='enviar_notificacion'),
+    path('calificar-chofer/<int:id_viaje>/', views.calificar_chofer, name='calificar_chofer'),
 ]
+
 
 

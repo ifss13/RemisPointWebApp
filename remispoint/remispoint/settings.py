@@ -157,3 +157,11 @@ TIME_ZONE = "America/Argentina/Buenos_Aires"
 
 # Mantener la configuración de uso de timezone en True
 USE_TZ = False
+
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'remis_app/static'),
+]
+
+ONESIGNAL_APP_ID = "0406f65d-0560-4e90-94f4-f2c3a52f61f4"
+ONESIGNAL_API_KEY = "os_v2_app_aqdpmxifmbhjbfhu6lb2kl3b6r3c6ek5xhqezpfknrevwobojg4mnvxnjkexfpodgle2qbsjcthqhblwyxtkciic7yo3xsktqwrfxfi"

@@ -159,16 +159,14 @@ def asignar_pedidos(request):
                 chofer_auto.disponibilidad = False
                 chofer_auto.save()
 
-                # Enviar notificación al cliente
-                # cliente = pedido.id_cliente
-                # usuario = User.objects.get(email=cliente.correo)
+                # Obtener el fcm_token del chofer para enviar la notificación
+                fcm_token = chofer.id_cliente.fcm_token
 
-                # Notificacion.objects.create(
-                    # usuario=usuario,
-                    # mensaje="Tu viaje ha sido asignado, el chofer está en camino."
-                #)
+                # Enviar la notificación al chofer
+                mensaje = f"Se te ha asignado un nuevo viaje: {pedido.dir_salida} -> {pedido.dir_destino}"
+                if fcm_token:
+                    enviar_notificacion(fcm_token, mensaje)
 
-                messages.success(request, "Pedido asignado correctamente.")
                 return redirect("administracion")
 
             except Exception as e:
@@ -284,3 +282,25 @@ def asignar_pedidos(request):
         # Si la operación no es válida
         else:
             return JsonResponse({"status": "error", "message": "Operación desconocida."}, status=400)
+        
+
+import requests
+def enviar_notificacion(player_id, mensaje):
+    url = "https://api.onesignal.com/notifications?c=push"
+    payload = {
+        "app_id": "0406f65d-0560-4e90-94f4-f2c3a52f61f4",
+        "contents": {"en": mensaje},
+        "include_player_ids": [player_id],
+        "small_icon": "static/icons/auto_rp.ico",
+    }
+
+    headers = {
+        "accept": "application/json",
+        "Authorization": "Key os_v2_app_aqdpmxifmbhjbfhu6lb2kl3b6r3c6ek5xhqezpfknrevwobojg4mnvxnjkexfpodgle2qbsjcthqhblwyxtkciic7yo3xsktqwrfxfi",
+        "content-type": "application/json"
+    }
+
+    # Enviar la notificación
+    response = requests.post(url, json=payload, headers=headers)
+    return response.json()
+

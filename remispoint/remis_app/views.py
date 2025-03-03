@@ -157,5 +157,71 @@ def cancelar_pedido(request, pedido_id):
     return JsonResponse({"success": False, "error": "Método no permitido."}, status=405)
 
 
+import requests
+
+import json
 
 
+
+@csrf_exempt
+def enviar_notificacion(request):
+    if request.method == "POST":
+        try:
+            # Convertir el body de la petición en un diccionario
+            data = json.loads(request.body)
+            mensaje = data.get("mensaje")
+            player_id = data.get("player_id")
+
+            # Verificar que los valores no sean None
+            if not mensaje or not player_id:
+                return JsonResponse({"error": "Faltan datos"}, status=400)
+
+            # URL y payload para OneSignal
+            url = "https://api.onesignal.com/notifications?c=push"
+
+            payload = {
+                "app_id": "0406f65d-0560-4e90-94f4-f2c3a52f61f4",
+                "contents": {"en": mensaje},
+                "include_player_ids": [player_id],
+                "small_icon": "static/icons/auto_rp.ico",
+            }
+
+            headers = {
+                "accept": "application/json",
+                "Authorization": "Key os_v2_app_aqdpmxifmbhjbfhu6lb2kl3b6r3c6ek5xhqezpfknrevwobojg4mnvxnjkexfpodgle2qbsjcthqhblwyxtkciic7yo3xsktqwrfxfi",
+                "content-type": "application/json"
+            }
+
+            # Enviar la notificación
+            response = requests.post(url, json=payload, headers=headers)
+            return JsonResponse(response.json())  # Devolver la respuesta de OneSignal
+
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Formato JSON inválido"}, status=400)
+
+    return JsonResponse({"error": "Método no permitido"}, status=405)
+
+
+
+from django.shortcuts import render, get_object_or_404
+from django.http import JsonResponse
+from .models import Rating, Viaje  # Necesitamos Viaje para obtener el id_viaje
+
+def calificar_chofer(request, id_viaje):
+    viaje = get_object_or_404(Viaje, id_viaje=id_viaje)
+    
+    if request.method == "POST":
+        calificacion = int(request.POST.get('calificacion', 0))
+        comentario = request.POST.get('comentario', '')
+
+        # Guardamos la calificación en la base de datos
+        Rating.objects.create(
+            id_viaje=viaje,
+            id_chofer=viaje.id_chofer,
+            id_cliente=viaje.id_cliente,
+            calificacion=calificacion,
+            comentario=comentario
+        )
+        return JsonResponse({"success": True, "message": "Calificación guardada correctamente."})
+
+    return render(request, 'clientes/calificar_chofer.html', {'viaje': viaje})

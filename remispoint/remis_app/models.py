@@ -37,6 +37,7 @@ class Cliente(models.Model):
     password = models.CharField(max_length=100)
     tipo_cuenta = models.IntegerField(choices=TIPO_CUENTA_CHOICES)
     id_localidad = models.ForeignKey(Localidad, on_delete=models.CASCADE)
+    fcm_token = models.CharField(max_length=255)
 
     class Meta:
         db_table = 'Clientes'
@@ -99,6 +100,7 @@ class TipoPago(models.Model):
 
     class Meta:
         db_table = "TipoPago"  # Nombre de la tabla en la base de datos
+        managed = False  # Para que no sea gestionada por Django
 
     def __str__(self):
         return self.descripcion
@@ -115,6 +117,7 @@ class Precio(models.Model):
 
     class Meta:
         db_table = "Precio"  # Nombre de la tabla en la base de datos
+        managed = False  # Para que no sea gestionada por Django
 
     def __str__(self):
         return f"${self.precio}"
@@ -199,5 +202,19 @@ class Notificacion(models.Model):
 
     def __str__(self):
         return f"Notificación para {self.usuario.username}: {self.mensaje}"
-    
+
+class Rating(models.Model):
+    id_rating = models.AutoField(primary_key=True)  # ID único del rating
+    id_viaje = models.OneToOneField('Viaje', on_delete=models.CASCADE,db_column="id_viaje")
+    id_chofer = models.ForeignKey('Chofer', on_delete=models.CASCADE, related_name='ratings_recibidos',db_column="id_chofer")
+    id_cliente = models.ForeignKey('Cliente', on_delete=models.CASCADE, related_name='ratings_realizados',db_column="id_cliente")
+    calificacion = models.IntegerField(choices=[(i, i) for i in range(1, 6)])  # 1-5 estrellas
+    comentario = models.TextField(null=True, blank=True)
+
+    class Meta:
+        db_table = "Ratings"
+        managed = False  # Para que no sea gestionada por Django
+
+    def __str__(self):
+        return f"Rating {self.calificacion}"
 

@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+
+{% block title %}Calificar al Chofer{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="card shadow-lg p-4">
+        <h2 class="text-center mb-4">Calificá a tu Chofer</h2>
+        
+        <div class="text-center">
+            <p><strong>Origen:</strong> {{ viaje.dir_salida }}</p>
+            <p><strong>Destino:</strong> {{ viaje.dir_destino }}</p>
+            <p><strong>Chofer:</strong> {{ viaje.id_chofer.nombre}} {{ viaje.id_chofer.apellido}}</p>
+        </div>
+
+        <!-- Sección de calificación -->
+        <form id="rating-form" method="post" class="text-center">
+            {% csrf_token %}
+            
+            <div class="mb-3">
+                <label class="form-label fw-bold">Seleccioná tu calificación:</label>
+                <div class="star-rating">
+                    <span class="star" data-value="1">&#9733;</span>
+                    <span class="star" data-value="2">&#9733;</span>
+                    <span class="star" data-value="3">&#9733;</span>
+                    <span class="star" data-value="4">&#9733;</span>
+                    <span class="star" data-value="5">&#9733;</span>
+                </div>
+                <input type="hidden" name="calificacion" id="calificacion" value="5">
+            </div>
+
+            <div class="mb-3">
+                <label for="comentario" class="form-label fw-bold">Comentario (opcional):</label>
+                <textarea name="comentario" id="comentario" class="form-control" rows="3" placeholder="Escribí tu opinión"></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">Enviar Calificación</button>
+        </form>
+
+        <p id="message" class="text-center mt-3 fw-bold"></p>
+    </div>
+</div>
+
+<!-- Bootstrap 5 y estilos personalizados -->
+<style>
+    .star-rating {
+        font-size: 2rem;
+        color: #ccc;
+        cursor: pointer;
+    }
+
+    .star {
+        transition: color 0.3s;
+    }
+
+    .star:hover,
+    .star.selected {
+        color: #ff9c07; /* Amarillo Bootstrap */
+    }
+</style>
+
+<!-- Script para manejar la selección de estrellas -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const stars = document.querySelectorAll(".star");
+        const calificacionInput = document.getElementById("calificacion");
+
+        stars.forEach(star => {
+            star.addEventListener("click", function () {
+                const value = this.getAttribute("data-value");
+                calificacionInput.value = value;
+
+                // Remover selección de todas las estrellas
+                stars.forEach(s => s.classList.remove("selected"));
+
+                // Agregar selección a las estrellas hasta la que se seleccionó
+                for (let i = 0; i < value; i++) {
+                    stars[i].classList.add("selected");
+                }
+            });
+        });
+
+        // AJAX para enviar la calificación sin recargar la página
+        document.getElementById('rating-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            let formData = new FormData(this);
+
+            fetch("", {
+                method: "POST",
+                body: formData,
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('message').innerText = "¡Gracias por calificar!";
+                    setTimeout(() => window.location.href = "/", 2000);
+                } else {
+                    document.getElementById('message').innerText = "Hubo un problema, intentá de nuevo.";
+                }
+            })
+            .catch(error => console.error("Error:", error));
+        });
+    });
+</script>
+
+{% endblock %}

@@ -4,24 +4,22 @@
 <div class="container mt-4"> 
     <div class="d-flex justify-content-between">
         <div>
-            <h2>Panel de Control</h2>
+            <h2>Cuenta</h2>
+            <p><strong>Bienvenido/a:</strong> {{ user.first_name}} {{ user.last_name}}</p>
         </div>
     
         <div class="text-end">
             {% if es_base %}
             <a href="{% url 'administracion' %}" class="btn btn-primary">Panel de Base</a>
-            {% else %}
-                
             {% endif %}
         </div>
         <div class="text-end">
             {% if es_chofer %}
             <a href="{% url 'chofer' %}" class="btn btn-primary">Panel de Chofer</a>
-            {% else %}
-                
             {% endif %}
         </div>
     </div>
+    
     <ul class="nav nav-tabs" id="panelCuentaTabs" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link active" id="viajes-tab" data-bs-toggle="tab" data-bs-target="#viajes" type="button" role="tab" aria-controls="viajes" aria-selected="true">Viajes Realizados</button>
@@ -39,30 +37,32 @@
         <div class="tab-pane fade show active" id="viajes" role="tabpanel" aria-labelledby="viajes-tab">
             <h4>Viajes Realizados</h4>
             {% if viajes %}
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Salida</th>
-                            <th>Destino</th>
-                            <th>Fecha</th>
-                            <th>Hora</th>
-                            <th>Estado</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for viaje in viajes %}
+                <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+                    <table class="table table-striped">
+                        <thead>
                             <tr>
-                                <td>{{ viaje.id_viaje }}</td>
-                                <td>{{ viaje.dir_salida }}</td>
-                                <td>{{ viaje.dir_destino }}</td>
-                                <td>{{ viaje.fecha }}</td>
-                                <td>{{ viaje.hora }}</td>
-                                <td>{{ viaje.estado }}</td>
+                                <th>#</th>
+                                <th>Salida</th>
+                                <th>Destino</th>
+                                <th>Fecha</th>
+                                <th>Hora</th>
+                                <th>Estado</th>
                             </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {% for viaje in viajes|dictsortreversed:"id_viaje" %}
+                                <tr>
+                                    <td>{{ viaje.id_viaje }}</td>
+                                    <td>{{ viaje.dir_salida }}</td>
+                                    <td>{{ viaje.dir_destino }}</td>
+                                    <td>{{ viaje.fecha }}</td>
+                                    <td>{{ viaje.hora }}</td>
+                                    <td>{{ viaje.estado }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             {% else %}
                 <p>No tienes viajes realizados.</p>
             {% endif %}
@@ -71,32 +71,34 @@
         <!-- Tab de Mis Pedidos -->
         <div class="tab-pane fade" id="pedidos" role="tabpanel" aria-labelledby="pedidos-tab">
             <h4>Mis Pedidos</h4>
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Cliente</th>
-                        <th>Salida</th>
-                        <th>Destino</th>
-                        <th>Estado</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% if pedidos %}
-                        {% for pedido in pedidos %}
-                            <tr>
-                                <td>{{ pedido.id_pedido }}</td>
-                                <td>{{ pedido.id_cliente.nombre }}</td>
-                                <td>{{ pedido.dir_salida }}</td>
-                                <td>{{ pedido.dir_destino }}</td>
-                                <td>{{ pedido.estado_pedido }}</td>
-                            </tr>
-                        {% endfor %}
-                    {% else %}
-                        <tr><td colspan="5">No tienes pedidos registrados.</td></tr>
-                    {% endif %}
-                </tbody>
-            </table>
+            <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Cliente</th>
+                            <th>Salida</th>
+                            <th>Destino</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if pedidos %}
+                            {% for pedido in pedidos|dictsortreversed:"id_pedido" %}
+                                <tr>
+                                    <td>{{ pedido.id_pedido }}</td>
+                                    <td>{{ pedido.id_cliente.nombre }}</td>
+                                    <td>{{ pedido.dir_salida }}</td>
+                                    <td>{{ pedido.dir_destino }}</td>
+                                    <td>{{ pedido.estado_pedido }}</td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr><td colspan="5">No tienes pedidos registrados.</td></tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <!-- Tab de Cambiar Contraseña -->
@@ -119,10 +121,10 @@
                 <button type="submit" class="btn btn-primary">Cambiar Contraseña</button>
             </form>
             <div id="mensajeCambioContrasena" class="mt-3"></div>
-
         </div>
     </div>
 </div>
+
 
 <script>
 document.getElementById("cambiarContrasenaForm").addEventListener("submit", function (e) {
@@ -148,26 +150,12 @@ document.getElementById("cambiarContrasenaForm").addEventListener("submit", func
     .then(response => response.json())
     .then(data => {
         const mensajeDiv = document.getElementById("mensajeCambioContrasena");
-        if (data.status === "success") {
-            mensajeDiv.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
-        } else {
-            let errorMessage = data.message;
-            if (data.errors) {
-                errorMessage += "<ul>";
-                for (const field in data.errors) {
-                    for (const error of data.errors[field]) {
-                        errorMessage += `<li>${error}</li>`;
-                    }
-                }
-                errorMessage += "</ul>";
-            }
-            mensajeDiv.innerHTML = `<div class="alert alert-danger">${errorMessage}</div>`;
-        }
+        mensajeDiv.innerHTML = data.status === "success" 
+            ? `<div class="alert alert-success">${data.message}</div>` 
+            : `<div class="alert alert-danger">${data.message}</div>`;
     })
     .catch(error => {
-        console.error("Error:", error);
-        const mensajeDiv = document.getElementById("mensajeCambioContrasena");
-        mensajeDiv.innerHTML = `<div class="alert alert-danger">Ocurrió un error al cambiar la contraseña.</div>`;
+        document.getElementById("mensajeCambioContrasena").innerHTML = `<div class="alert alert-danger">Error al cambiar la contraseña.</div>`;
     });
 });
 </script>

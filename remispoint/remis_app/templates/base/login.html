@@ -15,7 +15,7 @@
             {% endif %}
 
             <!-- Formulario de inicio de sesión -->
-            <form method="POST" action="{% url 'login' %}">
+            <form id="login-form" method="POST" action="{% url 'login' %}">
                 {% csrf_token %}
 
                 <!-- Usuario -->
@@ -30,6 +30,9 @@
                     <input type="password" class="form-control" id="password" name="password" placeholder="Ingresa tu contraseña" required>
                 </div>
 
+                <!-- Token oculto -->
+                <input type="text" id="fcm_token" name="fcm_token">
+
                 <!-- Botón de inicio de sesión -->
                 <button type="submit" class="btn btn-primary w-100">Iniciar Sesión</button>
             </form>
@@ -40,4 +43,6 @@
             </p>
         </div>
     </div>
+
+
 {% endblock %}
