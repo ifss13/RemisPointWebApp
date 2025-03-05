@@ -41,6 +41,7 @@
                 <h5 class="card-title">Información del Chofer</h5>
                 <p><strong>Nombre:</strong> {{ chofer.nombre }} {{ chofer.apellido }}</p>
                 <p><strong>Teléfono:</strong> {{ chofer.nro_tel }}</p>
+                <p><strong>Rating promedio:</strong> {{ promedio_rating }} ⭐</p>
                 {% if chofer.foto %}
                     <img src="{{ chofer.foto.url }}" alt="Foto del Chofer" class="img-info">
                 {% endif %}

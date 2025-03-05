@@ -294,7 +294,7 @@
             let pedidoId = this.getAttribute("data-pedido-id");
     
             if (confirm("¿Estás seguro de que querés cancelar este pedido?")) {
-                fetch(`/cancelar_pedido_base/${pedidoId}/`, {
+                fetch(`cancelar_pedido_base/${pedidoId}/`, {
                     method: "POST",
                     headers: {
                         "X-CSRFToken": "{{ csrf_token }}",

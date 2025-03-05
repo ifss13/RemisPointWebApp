@@ -1,6 +1,6 @@
-from remis_app.models import Chofer, Auto, Viaje, Cliente
-from django.shortcuts import get_object_or_404
-from django.shortcuts import render
+from remis_app.models import Chofer, Auto, Viaje, Cliente, Rating
+from django.db.models import Avg
+from django.shortcuts import get_object_or_404, render
 
 def viaje(request):
     try:
@@ -14,13 +14,17 @@ def viaje(request):
             return render(request, 'clientes/viaje.html', {'error': "No tienes un viaje en progreso."})
 
         # Obtener la información del chofer y del auto
-        chofer = get_object_or_404(Chofer, id_chofer=viaje.id_chofer.id_chofer)  # 🔹 Lo obtenemos directo de Viaje
-        auto = get_object_or_404(Auto, patente=viaje.patente)  # 🔹 Auto directo de Viaje
+        chofer = get_object_or_404(Chofer, id_chofer=viaje.id_chofer.id_chofer)
+        auto = get_object_or_404(Auto, patente=viaje.patente)
+
+        # Calcular el promedio de ratings del chofer
+        promedio_rating = Rating.objects.filter(id_chofer=chofer).aggregate(Avg('calificacion'))['calificacion__avg']
 
         return render(request, 'clientes/viaje.html', {
             'viaje': viaje,
             'chofer': chofer,
-            'auto': auto
+            'auto': auto,
+            'promedio_rating': round(promedio_rating, 1) if promedio_rating else "Sin calificaciones"
         })
 
     except Auto.DoesNotExist:

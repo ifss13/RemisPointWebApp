@@ -1,3 +1,22 @@
+<style>
+    .scrollable-table {
+        max-height: 400px; /* Ajusta la altura según lo que necesites */
+        overflow-y: auto;
+        display: block;
+    }
+
+    .scrollable-table table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .scrollable-table th, .scrollable-table td {
+        white-space: nowrap; /* Evita que el texto se divida */
+        padding: 8px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+    }
+</style>
 <div class="container mt-4">
     <h2>Registro de Viajes</h2>
     
@@ -23,9 +42,13 @@
             <label for="filtroEstado">Estado:</label>
             <select id="filtroEstado" class="form-control" onchange="filtrarViajes()">
                 <option value="Todos">Todos</option>
+                <option value="Asignado">Asignado</option>
+                <option value="En camino al cliente">En camino al cliente</option>
                 <option value="En viaje">En viaje</option>
                 <option value="Finalizado">Finalizado</option>
-                <option value="Cancelado">Cancelado</option>
+                <option value="Cancelado por la Base">Cancelado por la Base</option>
+                <option value="Cancelado por el cliente">Cancelado por el cliente</option>
+                <option value="Cancelado por el chofer">Cancelado por el chofer</option>
             </select>
         </div>
         <div class="col-md-3">
@@ -38,7 +61,7 @@
             </select>
         </div>
     </div>
-    
+    <div class="scrollable-table">
     <!-- Tabla de Viajes -->
     <table class="table table-striped" id="tablaViajes">
         <thead>
@@ -56,18 +79,17 @@
             </tr>
         </thead>
         <tbody>
-            {% for viaje in viajes_registrados %}
+            {% for viaje in viajes_registrados|dictsortreversed:"id_viaje" %}
             <tr>
                 <td>{{ viaje.id_viaje }}</td>
                 <td>{{ viaje.fecha|date:"d/m/Y" }}</td>
                 <td>{{ viaje.id_cliente.nombre }} {{ viaje.id_cliente.apellido }}</td>
                 <td>
-                    {% for chofer_auto in viaje.patente.choferauto_set.all %}
-                        {{ chofer_auto.id_chofer.nombre }} {{ chofer_auto.id_chofer.apellido }}
-                    {% endfor %}
+                        {{ viaje.id_chofer.nombre }} {{ viaje.id_chofer.apellido }}
+
                 </td>
                 <td>{{ viaje.patente.patente }} - {{ viaje.patente.tipo }}</td>
-                <td> ${{ viaje.id_precio.precio }}</td>  <!-- Muestra el precio correcto -->
+                <td><strong> ${{ viaje.id_precio.precio }} </strong></td>  <!-- Muestra el precio correcto -->
                 <td>{{ viaje.dir_salida }}</td>
                 <td>{{ viaje.dir_destino }}</td>
                 <td>{{ viaje.cod_tipo_pago.descripcion }}</td>  <!-- Muestra la descripción del tipo de pago -->
@@ -76,6 +98,7 @@
             {% endfor %}
         </tbody>
     </table>
+    </div>
 </div>
 
 <script>

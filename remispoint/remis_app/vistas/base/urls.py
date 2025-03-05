@@ -13,4 +13,5 @@ urlpatterns = [
     path('choferes/eliminar/<int:id_chofer>/', asignar_pedidos, name='eliminar_chofer'),  # Base
     path('asignar-auto/', crear_asignacion, name='crear_asignacion'),  # Base
     path('eliminar-asignacion/<int:id_chofer>/<str:patente>/', eliminar_asignacion, name='eliminar_asignacion'),
+    path('administracion/cancelar_pedido_base/<int:pedido_id>/', cancelar_pedido_base, name='cancelar-pedido'),  # Base
 ]
