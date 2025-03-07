@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.models import User
 from remis_app.models import Cliente, Localidad
 from django.db import IntegrityError
+from .login import custom_login
 
 def register(request):
     if request.method == "POST":
@@ -56,7 +57,7 @@ def register(request):
             cliente.save()
 
             # Login del usuario después de la creación
-            login(request, user)
+            custom_login(request, user)
 
             return redirect('home')  # Redirige a la página de inicio o donde quieras
 
