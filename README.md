@@ -26,10 +26,12 @@ Order management: Orders are assigned to available drivers and managed in real-t
 
 Notifications: Notifications are sent to both clients and drivers when a ride is assigned or if there are any important updates.
 
-Technologies used
-Backend: Django, Python
-Frontend: HTML, CSS (Bootstrap), JavaScript
-Database: PostgreSQL
-API: Integration with OpenRouteService for route calculations.
-Notifications: Real-time notifications for drivers and clients.
-PROJECT UNDER CONSTRUCTION
+Technologies Used
+
+    Backend: Django, Python
+    Frontend: HTML, CSS (Bootstrap), JavaScript
+    Database: PostgreSQL (managed with phpPgAdmin 4)
+    API: Integration with OpenRouteService for route calculations
+    Notifications: Real-time notifications for drivers and clients (OneSignal)
+
+🚧 PROJECT UNDER CONSTRUCTION 🚧
