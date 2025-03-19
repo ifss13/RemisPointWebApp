@@ -16,8 +16,10 @@ def panel_chofer(request):
 
         # Obtener la información del chofer
         chofer = Chofer.objects.filter(id_cliente=cliente).first()
+        print(chofer)
         if not chofer:
             return render(request, "chofer/panel_chofer.html", {"error": "Chofer no encontrado."})
+
 
         # Obtener el viaje en curso (Asignado, En camino al cliente, En viaje)
         viaje = Viaje.objects.filter(id_chofer=chofer, estado__in=["Asignado", "En camino al cliente", "En viaje"]).first()
@@ -39,7 +41,7 @@ def panel_chofer(request):
         return render(request, "chofer/panel_chofer.html", {
             "chofer": chofer,
             "viaje": viaje,  # Será None si no hay un viaje en curso
-            "fcm_token": fcm_token  # Pasar el fcm_token a la plantilla si lo necesitas
+            "fcm_token": fcm_token,  # Pasar el fcm_token a la plantilla si lo necesitas
         })
 
     except Exception as e:

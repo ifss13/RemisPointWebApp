@@ -154,7 +154,7 @@ def asignar_pedidos(request):
                 )
 
                 # Actualizar estado del pedido y la disponibilidad del chofer
-                pedido.estado_pedido = "Asignado"
+                pedido.estado_pedido = "Esperando al chofer"
                 pedido.save()
                 chofer_auto.disponibilidad = False
                 chofer_auto.save()

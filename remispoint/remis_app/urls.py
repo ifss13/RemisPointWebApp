@@ -22,6 +22,8 @@ urlpatterns = [
     path("", include("remis_app.vistas.mp_auth.urls")),
     path('enviar-notificacion/', views.enviar_notificacion, name='enviar_notificacion'),
     path('calificar-chofer/<int:id_viaje>/', views.calificar_chofer, name='calificar_chofer'),
+    path('cancelar_viaje_asignado/<int:viaje_id>/', views.cancelar_viaje_asignado, name="cancelar_viaje_asignado"),
+    path('reportes_viajes/', views.reportes_viajes, name='reportes_viajes'),
 ]
 
 

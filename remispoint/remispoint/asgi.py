@@ -1,16 +1,13 @@
-"""
-ASGI config for remispoint project.
-
-It exposes the ASGI callable as a module-level variable named ``application``.
-
-For more information on this file, see
-https://docs.djangoproject.com/en/5.1/howto/deployment/asgi/
-"""
-
 import os
-
 from django.core.asgi import get_asgi_application
+from channels.routing import ProtocolTypeRouter, URLRouter
+from remis_app.routing import websocket_urlpatterns
+from django.contrib.staticfiles.handlers import ASGIStaticFilesHandler
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'remispoint.settings')
 
-application = get_asgi_application()
+# Configurar ASGI para manejar WebSockets y archivos estáticos
+application = ProtocolTypeRouter({
+    "http": ASGIStaticFilesHandler(get_asgi_application()),  # ✅ Esto maneja archivos estáticos en ASGI
+    "websocket": URLRouter(websocket_urlpatterns),
+})

@@ -55,7 +55,7 @@
         fetch(`/verificar_estado_pedido/${pedidoId}/`)
             .then(response => response.json())
             .then(data => {
-                if (data.estado_pedido === 'Asignado') {
+                if (data.estado_pedido === 'En camino al cliente') {
                     // Redirigir a viaje.html cuando el pedido está asignado
                     window.location.href = "/viaje/";
                 }

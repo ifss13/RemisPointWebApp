@@ -225,3 +225,108 @@ def calificar_chofer(request, id_viaje):
         return JsonResponse({"success": True, "message": "Calificación guardada correctamente."})
 
     return render(request, 'clientes/calificar_chofer.html', {'viaje': viaje})
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import json
+from remis_app.models import Viaje, PedidosCliente, Chofer
+from django.core.exceptions import ObjectDoesNotExist
+
+@csrf_exempt
+def cancelar_viaje_asignado(request, viaje_id):
+    if request.method == "POST":
+        try:
+            print(f"🔍 Recibida solicitud de cancelación para viaje ID: {viaje_id}")
+
+            # Buscar el viaje
+            viaje = Viaje.objects.get(id_viaje=viaje_id)
+            print(f"✅ Viaje encontrado: {viaje}")
+
+            # Buscar el pedido asociado al cliente en estado "Esperando al chofer"
+            pedido = PedidosCliente.objects.filter(
+                id_cliente=viaje.id_cliente,
+                estado_pedido="Esperando al chofer"
+            ).first()
+
+            if not pedido:
+                print("⚠️ Error: No se encontró un pedido en estado 'Esperando al chofer' para este cliente")
+                return JsonResponse({"success": False, "error": "No se encontró un pedido activo para este cliente."}, status=404)
+
+            print(f"✅ Pedido encontrado: {pedido}")
+
+            # Verificar si el chofer existe
+            chofer = Chofer.objects.get(id_chofer=viaje.id_chofer.id_chofer)
+            print(f"✅ Chofer encontrado: {chofer}")
+
+            # Eliminar el viaje
+            viaje.delete()
+            print("✅ Viaje eliminado correctamente")
+
+            # Cambiar el estado del pedido a "Pendiente" para que pueda ser reasignado
+            pedido.estado_pedido = "Pendiente"
+            pedido.save()
+            print("✅ Estado del pedido actualizado a 'Pendiente'")
+
+            # Marcar al chofer como "Disponible"
+            chofer_auto = Chofer.objects.filter(id_chofer=chofer.id_chofer).first()
+            if chofer_auto:
+                chofer_auto.disponibilidad = True
+                chofer_auto.save()
+                print("✅ Chofer marcado como 'Disponible'")
+
+            return JsonResponse({"success": True, "message": "Viaje cancelado correctamente."})
+
+        except Viaje.DoesNotExist:
+            print("⚠️ Error: El viaje no existe")
+            return JsonResponse({"success": False, "error": "El viaje no existe."}, status=404)
+        except PedidosCliente.DoesNotExist:
+            print("⚠️ Error: El pedido no existe")
+            return JsonResponse({"success": False, "error": "No se encontró un pedido en estado 'Esperando al chofer' para este cliente."}, status=404)
+        except Chofer.DoesNotExist:
+            print("⚠️ Error: El chofer no existe")
+            return JsonResponse({"success": False, "error": "El chofer no existe."}, status=404)
+        except Exception as e:
+            print(f"⚠️ Error desconocido: {str(e)}")
+            return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+    return JsonResponse({"success": False, "error": "Método no permitido."}, status=405)
+
+from django.http import JsonResponse
+from django.shortcuts import render
+from django.db.models import Count, Sum
+from datetime import datetime, timedelta
+from .models import Viaje
+
+def reportes_viajes(request):
+    mes = int(request.GET.get('mes', datetime.now().month))
+    anio = int(request.GET.get('anio', datetime.now().year))
+
+    # Obtener el primer y último día del mes seleccionado
+    primer_dia = datetime(anio, mes, 1)
+    if mes == 12:
+        ultimo_dia = datetime(anio + 1, 1, 1) - timedelta(days=1)
+    else:
+        ultimo_dia = datetime(anio, mes + 1, 1) - timedelta(days=1)
+
+    # Filtrar viajes por mes y año
+    viajes_mes = Viaje.objects.filter(fecha__year=anio, fecha__month=mes)
+    total_viajes_mes = viajes_mes.count()
+    total_recaudado_mes = viajes_mes.aggregate(Sum('id_precio__precio'))['id_precio__precio__sum'] or 0
+
+    # Calcular viajes y recaudación por semana
+    viajes_por_semana = []
+    recaudacion_por_semana = []
+    dia_actual = primer_dia
+    while dia_actual <= ultimo_dia:
+        fin_semana = dia_actual + timedelta(days=6)
+        viajes_semana = Viaje.objects.filter(fecha__range=[dia_actual, fin_semana])
+        viajes_por_semana.append(viajes_semana.count())
+        recaudacion_por_semana.append(viajes_semana.aggregate(Sum('id_precio__precio'))['id_precio__precio__sum'] or 0)
+        dia_actual = fin_semana + timedelta(days=1)
+
+    return JsonResponse({
+        'viajesSemana': sum(viajes_por_semana),
+        'viajesMes': total_viajes_mes,
+        'recaudacionSemana': sum(recaudacion_por_semana),
+        'recaudacionMes': total_recaudado_mes,
+    })

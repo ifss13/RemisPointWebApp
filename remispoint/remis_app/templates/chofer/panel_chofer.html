@@ -105,7 +105,11 @@
 
 <div class="container mt-4">
     <h2 class="text-center">Panel del Chofer</h2>
-    
+    <div>
+    <p>
+    {{ chofer.id_chofer }} {{ chofer.nombre }} {{ chofer.apellido }}
+    </p>
+    </div>
     <!-- Pestañas -->
     <ul class="nav nav-tabs nav-justified" id="choferTabs">
         <li class="nav-item">
@@ -124,8 +128,10 @@
         <div class="tab-pane fade show active text-center" id="esperando">
             <div id="viaje-encontrado" style="display: none;">
                 <h3>Has sido asignado un viaje</h3>
+                <p>{{ viaje.id_viaje }}</p>
                 <p id="info-viaje"></p>
                 <button id="aceptar-viaje" class="btn btn-primary">Salir a la dirección de destino</button>
+                <button id="cancelar-pedido" class="btn btn-danger mt-2">Cancelar pedido asignado</button>
             </div>
 
             <div id="esperando-viaje">
@@ -242,9 +248,18 @@
                         if (btnFinalizar) {
                             btnFinalizar.style.display = 'none';
                         }
+                        let btnCancelar = document.getElementById('cancelar-pedido');
+                        btnCancelar.setAttribute("data-viaje-id", data.id_viaje);
+                        btnCancelar.style.display = 'block';  // Mostrar el botón
+
+                        // Configurar evento para cancelar el viaje
+                        btnCancelar.onclick = function () {
+                            cancelarViaje(data.id_viaje);
+                        }
                     } else if (data.estado === "En camino al cliente") {
                         // Mostrar la sección de mapa con la ruta inicial (chofer a pickup)
                         document.getElementById('aceptar-viaje').style.display = 'none';
+                        document.getElementById('cancelar-pedido').style.display = 'none';
                         document.getElementById('iniciar-viaje').style.display = 'block';
                         document.getElementById('mapa-container').style.display = 'block';
                         // Ocultar botón "Finalizar Viaje" si existe
@@ -260,6 +275,7 @@
                     } else if (data.estado === "En viaje") {
                         // Mostrar la ruta final (desde pickup a destino)
                         document.getElementById('aceptar-viaje').style.display = 'none';
+                        document.getElementById('cancelar-pedido').style.display = 'none';
                         document.getElementById('iniciar-viaje').style.display = 'none';
                         document.getElementById('mapa-container').style.display = 'block';
                         if (viajeActual !== data.id_viaje || map === null) {
@@ -269,6 +285,7 @@
                     } else if (data.estado === "Finalizado") {
                         // Ocultar botones y mapa; se puede mostrar mensaje de "en construcción"
                         document.getElementById('aceptar-viaje').style.display = 'none';
+                        document.getElementById('cancelar-pedido').style.display = 'none';
                         document.getElementById('iniciar-viaje').style.display = 'none';
                         document.getElementById('mapa-container').style.display = 'none';
                     }
@@ -408,6 +425,29 @@
         .catch(error => console.error("Error al iniciar viaje:", error));
     }
 
+    function cancelarViaje(id_viaje) {
+        if (confirm("¿Seguro que quieres cancelar este pedido?")) {
+            fetch(`/cancelar_viaje_asignado/${id_viaje}/`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log("Viaje cancelado correctamente.");
+                    alert("Pedido cancelado correctamente.");
+                    window.location.reload();  // Recargar la página para reflejar los cambios
+                } else {
+                    alert("Error al cancelar el pedido: " + data.error);
+                }
+            })
+            .catch(error => console.error("Error al cancelar el pedido:", error));
+        }
+    }
+
     // Función para obtener coordenadas usando Nominatim
     async function obtenerCoordenadas(direccion) {
         const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(direccion)}`);
@@ -517,7 +557,97 @@
     setInterval(verificarAsignacion, 5000);
 </script>
 
+<!--WEBSOCKETS-->
+<script>
+    // Conectar WebSocket para enviar ubicación en tiempo real
+var socket = new WebSocket("wss://comic-presumably-dogfish.ngrok-free.app/ws/location/");
 
+socket.onopen = function(event) {
+    console.log("Conectado al WebSocket de ubicación");
+};
+
+socket.onerror = function(event) {
+    console.error("Error en la conexión WebSocket", event);
+};
+var trackingActivo = false;
+var ubicacionWatcher = null;  // 🔹 Para manejar watchPosition()
+CHOFER_ID = '{{ chofer.id_chofer }}';
+VIAJE_ID = '{{ viaje.id_viaje }}';
+
+
+// 🔹 Función para enviar la ubicación
+function enviarUbicacion(position) {
+    if (trackingActivo && socket.readyState === WebSocket.OPEN) {
+        var data = {
+            chofer_id: CHOFER_ID,
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            viaje_id: VIAJE_ID
+        };
+        console.log("📡 Enviando ubicación:", data);
+        socket.send(JSON.stringify(data));
+
+        // ✅ Mover el marcador en el mapa
+        actualizarUbicacionChofer(position.coords.latitude, position.coords.longitude);
+    }
+}
+
+// 🔹 Iniciar seguimiento con watchPosition()
+document.getElementById("aceptar-viaje").addEventListener("click", function() {
+    if (!trackingActivo) {
+        trackingActivo = true;
+
+        if (ubicacionWatcher !== null) {
+            navigator.geolocation.clearWatch(ubicacionWatcher);
+            ubicacionWatcher = null;
+        }
+
+        ubicacionWatcher = navigator.geolocation.watchPosition(enviarUbicacion, 
+            error => console.error("⚠️ Error obteniendo ubicación:", error), 
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+        );
+
+        console.log("🟢 Seguimiento iniciado con watchPosition()");
+    }
+});
+
+// 🔹 Detener seguimiento
+document.getElementById("finalizar-viaje").addEventListener("click", function() {
+    trackingActivo = false;
+
+    if (ubicacionWatcher !== null) {
+        navigator.geolocation.clearWatch(ubicacionWatcher);
+        ubicacionWatcher = null;
+        console.log("🔴 Seguimiento detenido");
+    }
+});
+
+// 🔹 Mover el marcador en el mapa
+var markerChofer = null;
+
+function actualizarUbicacionChofer(lat, lon) {
+    if (!markerChofer) {
+        const animDiv = L.DomUtil.create('div');
+        animDiv.style.width = '50px';
+        animDiv.style.height = '50px';
+
+        lottie.loadAnimation({
+            container: animDiv,
+            renderer: 'svg',
+            loop: true,
+            autoplay: true,
+            path: '/static/animaciones/Animacion_ubicacion.json'
+        });
+
+        const customIcon = L.divIcon({ html: animDiv, iconSize: [50, 50], className: '' });
+        markerChofer = L.marker([lat, lon], { icon: customIcon }).addTo(map);
+    } else {
+        markerChofer.setLatLng([lat, lon]);
+    }
+
+    map.setView([lat, lon], 15);
+}
+</script>
 
 
 

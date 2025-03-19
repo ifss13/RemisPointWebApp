@@ -1,25 +1,9 @@
-<style>
-    .scrollable-table {
-        max-height: 400px; /* Ajusta la altura según lo que necesites */
-        overflow-y: auto;
-        display: block;
-    }
+<!-- Agregar DataTables CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
 
-    .scrollable-table table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-
-    .scrollable-table th, .scrollable-table td {
-        white-space: nowrap; /* Evita que el texto se divida */
-        padding: 8px;
-        text-align: left;
-        border-bottom: 1px solid #ddd;
-    }
-</style>
 <div class="container mt-4">
     <h2>Registro de Viajes</h2>
-    
+
     <!-- Filtros -->
     <div class="row mb-3">
         <div class="col-md-3">
@@ -60,9 +44,15 @@
                 {% endfor %}
             </select>
         </div>
+        <div class="col-md-3">
+            <br>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalReportes">
+                Ver Reportes
+            </button>
+        </div>
     </div>
-    <div class="scrollable-table">
-    <!-- Tabla de Viajes -->
+
+    <!-- Tabla de Viajes con Paginación -->
     <table class="table table-striped" id="tablaViajes">
         <thead>
             <tr>
@@ -84,57 +74,159 @@
                 <td>{{ viaje.id_viaje }}</td>
                 <td>{{ viaje.fecha|date:"d/m/Y" }}</td>
                 <td>{{ viaje.id_cliente.nombre }} {{ viaje.id_cliente.apellido }}</td>
-                <td>
-                        {{ viaje.id_chofer.nombre }} {{ viaje.id_chofer.apellido }}
-
-                </td>
+                <td>{{ viaje.id_chofer.nombre }} {{ viaje.id_chofer.apellido }}</td>
                 <td>{{ viaje.patente.patente }} - {{ viaje.patente.tipo }}</td>
-                <td><strong> ${{ viaje.id_precio.precio }} </strong></td>  <!-- Muestra el precio correcto -->
+                <td><strong> ${{ viaje.id_precio.precio }} </strong></td>
                 <td>{{ viaje.dir_salida }}</td>
                 <td>{{ viaje.dir_destino }}</td>
-                <td>{{ viaje.cod_tipo_pago.descripcion }}</td>  <!-- Muestra la descripción del tipo de pago -->
+                <td>{{ viaje.cod_tipo_pago.descripcion }}</td>
                 <td>{{ viaje.estado }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+</div>
+<!-- Botón para abrir el modal -->
+
+
+<!-- Modal de Reportes -->
+<div class="modal fade" id="modalReportes" tabindex="-1" aria-labelledby="modalReportesLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalReportesLabel">Reportes de Viajes</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Filtros -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="selectMes">Seleccionar Mes:</label>
+                        <select id="selectMes" class="form-control">
+                            <option value="1">Enero</option>
+                            <option value="2">Febrero</option>
+                            <option value="3">Marzo</option>
+                            <option value="4">Abril</option>
+                            <option value="5">Mayo</option>
+                            <option value="6">Junio</option>
+                            <option value="7">Julio</option>
+                            <option value="8">Agosto</option>
+                            <option value="9">Septiembre</option>
+                            <option value="10">Octubre</option>
+                            <option value="11">Noviembre</option>
+                            <option value="12">Diciembre</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="selectAnio">Seleccionar Año:</label>
+                        <select id="selectAnio" class="form-control"></select>
+                    </div>
+                </div>
+                
+                <!-- Resultados -->
+                <div id="resultadosReportes">
+                    <p style="display: none;"><strong>Viajes por semana:</strong> <span id="viajesSemana">-</span></p>
+                    <p><strong>Viajes en el mes seleccionado:</strong> <span id="viajesMes">-</span></p>
+                    <p style="display: none;"><strong>Recaudación por semana:</strong> $<span id="recaudacionSemana">-</span></p>
+                    <p><strong>Recaudación en el mes seleccionado:</strong> $<span id="recaudacionMes">-</span></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" onclick="cargarReportes()">Actualizar Reportes</button>
+            </div>
+        </div>
     </div>
 </div>
 
 <script>
-    function filtrarViajes() {
-        let fechaFiltro = document.getElementById("filtroFecha").value;
-        let clienteFiltro = document.getElementById("filtroCliente").value.toLowerCase();
-        let patenteFiltro = document.getElementById("filtroPatente").value.toLowerCase();
-        let choferFiltro = document.getElementById("filtroChofer").value.toLowerCase();
-        let estadoFiltro = document.getElementById("filtroEstado").value;
-        let pagoFiltro = document.getElementById("filtroPago").value;
+    // Rellenar los años en el select (últimos 5 años)
+    let selectAnio = document.getElementById("selectAnio");
+    let anioActual = new Date().getFullYear();
+    for (let i = anioActual; i >= anioActual - 5; i--) {
+        let option = document.createElement("option");
+        option.value = i;
+        option.textContent = i;
+        selectAnio.appendChild(option);
+    }
 
-        // ✅ Convierte fecha de YYYY-MM-DD a DD/MM/YYYY para la comparación
-        if (fechaFiltro) {
-            let partesFecha = fechaFiltro.split("-");
-            fechaFiltro = `${partesFecha[2]}/${partesFecha[1]}/${partesFecha[0]}`;
-        }
+    function cargarReportes() {
+        let mes = document.getElementById("selectMes").value;
+        let anio = document.getElementById("selectAnio").value;
 
-        let filas = document.querySelectorAll("#tablaViajes tbody tr");
-        filas.forEach(fila => {
-            let fecha = fila.cells[1].innerText.trim(); // Fecha en la tabla ya formateada como DD/MM/YYYY
-            let cliente = fila.cells[2].innerText.toLowerCase();
-            let chofer = fila.cells[3].innerText.toLowerCase();
-            let patente = fila.cells[4].innerText.toLowerCase();
-            let estado = fila.cells[9].innerText.trim();
-            let tipoPago = fila.cells[8].innerText.trim();
-
-            let mostrar = true;
-            if (fechaFiltro && fecha !== fechaFiltro) mostrar = false;
-            if (clienteFiltro && !cliente.includes(clienteFiltro)) mostrar = false;
-            if (patenteFiltro && !patente.includes(patenteFiltro)) mostrar = false;
-            if (choferFiltro && !chofer.includes(choferFiltro)) mostrar = false;
-            if (estadoFiltro !== "Todos" && estado !== estadoFiltro) mostrar = false;
-            if (pagoFiltro !== "Todos" && tipoPago !== pagoFiltro) mostrar = false;
-
-            fila.style.display = mostrar ? "" : "none";
-        });
+        // Simulación de datos desde el backend con AJAX
+        fetch(`/reportes_viajes/?mes=${mes}&anio=${anio}`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("viajesSemana").textContent = data.viajesSemana;
+                document.getElementById("viajesMes").textContent = data.viajesMes;
+                document.getElementById("recaudacionSemana").textContent = data.recaudacionSemana;
+                document.getElementById("recaudacionMes").textContent = data.recaudacionMes;
+            })
+            .catch(error => console.error("Error al obtener reportes:", error));
     }
 </script>
 
+<!-- Agregar jQuery y DataTables.js -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+
+<script>
+    $(document).ready(function () {
+        // Inicializa DataTables con paginación de 15 registros por página
+        let tabla = $('#tablaViajes').DataTable({
+            "pageLength": 15, // Cantidad de registros por página
+            "lengthChange": false, // Oculta la opción de cambiar el número de registros por página
+            "ordering": true,
+            "order": [[0, "desc"]], // Permite ordenar por columnas
+            "info": true, // Muestra el número de registros actuales
+            "language": {
+                "paginate": {
+                    "previous": "Anterior",
+                    "next": "Siguiente"
+                },
+                "search": "Buscar:",
+                "info": "Mostrando _START_ a _END_ de _TOTAL_ registros"
+            }
+        });
+
+        // Filtrar los viajes según los campos
+        function filtrarViajes() {
+            let fechaFiltro = $("#filtroFecha").val();
+            let clienteFiltro = $("#filtroCliente").val().toLowerCase();
+            let patenteFiltro = $("#filtroPatente").val().toLowerCase();
+            let choferFiltro = $("#filtroChofer").val().toLowerCase();
+            let estadoFiltro = $("#filtroEstado").val();
+            let pagoFiltro = $("#filtroPago").val();
+
+            // ✅ Convertir fecha de YYYY-MM-DD a DD/MM/YYYY
+            if (fechaFiltro) {
+                let partesFecha = fechaFiltro.split("-");
+                fechaFiltro = `${partesFecha[2]}/${partesFecha[1]}/${partesFecha[0]}`;
+            }
+
+            tabla.rows().every(function () {
+                let fila = $(this.node());
+                let fecha = fila.find("td:eq(1)").text().trim();
+                let cliente = fila.find("td:eq(2)").text().toLowerCase();
+                let chofer = fila.find("td:eq(3)").text().toLowerCase();
+                let patente = fila.find("td:eq(4)").text().toLowerCase();
+                let estado = fila.find("td:eq(9)").text().trim();
+                let tipoPago = fila.find("td:eq(8)").text().trim();
+
+                let mostrar = true;
+                if (fechaFiltro && fecha !== fechaFiltro) mostrar = false;
+                if (clienteFiltro && !cliente.includes(clienteFiltro)) mostrar = false;
+                if (patenteFiltro && !patente.includes(patenteFiltro)) mostrar = false;
+                if (choferFiltro && !chofer.includes(choferFiltro)) mostrar = false;
+                if (estadoFiltro !== "Todos" && estado !== estadoFiltro) mostrar = false;
+                if (pagoFiltro !== "Todos" && tipoPago !== pagoFiltro) mostrar = false;
+
+                fila.toggle(mostrar);
+            });
+        }
+
+        // Vincular la función a los filtros
+        $("#filtroFecha, #filtroCliente, #filtroPatente, #filtroChofer, #filtroEstado, #filtroPago").on("change keyup", filtrarViajes);
+    });
+</script>

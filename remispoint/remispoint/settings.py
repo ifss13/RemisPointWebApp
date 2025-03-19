@@ -38,7 +38,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'remis_app'
+    'remis_app',
+    'channels',
+    'daphne'
+
 ]
 
 MIDDLEWARE = [
@@ -158,10 +161,25 @@ TIME_ZONE = "America/Argentina/Buenos_Aires"
 # Mantener la configuración de uso de timezone en True
 USE_TZ = False
 
-STATIC_URL = '/static/'
+import os
+
+
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'remis_app/static'),
+    os.path.join(BASE_DIR, 'remis_app', 'static'),  # Agrega esta línea
 ]
+
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # Para collectstatic en producción
+
 
 ONESIGNAL_APP_ID = "0406f65d-0560-4e90-94f4-f2c3a52f61f4"
 ONESIGNAL_API_KEY = "os_v2_app_aqdpmxifmbhjbfhu6lb2kl3b6r3c6ek5xhqezpfknrevwobojg4mnvxnjkexfpodgle2qbsjcthqhblwyxtkciic7yo3xsktqwrfxfi"
+
+
+
+ASGI_APPLICATION = 'remispoint.asgi.application'  # Reemplazá 'tu_proyecto' por el nombre real de tu proyecto
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",  # Para pruebas locales
+    },
+}
