@@ -24,6 +24,10 @@ urlpatterns = [
     path('calificar-chofer/<int:id_viaje>/', views.calificar_chofer, name='calificar_chofer'),
     path('cancelar_viaje_asignado/<int:viaje_id>/', views.cancelar_viaje_asignado, name="cancelar_viaje_asignado"),
     path('reportes_viajes/', views.reportes_viajes, name='reportes_viajes'),
+    path('viajes-chofer/<int:id_chofer>/', views.viajes_por_chofer, name='viajes_por_chofer'),
+    path('actualizar-datos-chofer/<int:id_chofer>/', views.actualizar_datos_chofer, name='actualizar_datos_chofer'),
+    path('verificar-codigo-remiseria/', views.verificar_codigo_remiseria, name='verificar_codigo_remiseria'),
+    path("actualizar-panel-base/", views.actualizar_panel_base, name="actualizar_panel_base"),
 ]
 
 

@@ -119,6 +119,9 @@
             <a class="nav-link" id="registro-tab" data-bs-toggle="tab" href="#registro">Registro de Viajes</a>
         </li>
         <li class="nav-item">
+            <a class="nav-link" id="datos-tab" data-bs-toggle="tab" href="#datos">Datos personales</a>
+        </li>
+        <li class="nav-item">
             <a class="nav-link" id="conexiones-tab" data-bs-toggle="tab" href="#conexiones">Conexiones</a>
         </li>
     </ul>
@@ -161,8 +164,50 @@
 
         <!-- Pestaña "Registro de Viajes" -->
         <div class="tab-pane fade text-center" id="registro">
-            <p class="mt-3">En construcción...</p>
+                <div class="table-responsive mt-4">
+                    <table id="tabla-viajes" class="table table-bordered table-striped table-sm">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Cliente</th>
+                                <th>Desde</th>
+                                <th>Hasta</th>
+                                <th>Precio</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
         </div>
+
+        <!-- Pestaña "Datos personales" -->
+        <div class="tab-pane fade text-center" id="datos">
+            <form id="form-datos" action="{% url 'actualizar_datos_chofer' chofer.id_chofer %}" method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="mt-4">
+                    <h5>Foto del chofer actual:</h5>
+                    {% if chofer.foto %}
+                        <img src="{{ chofer.foto.url }}" alt="Foto actual" class="img-thumbnail mb-2" style="max-width: 200px;">
+                    {% else %}
+                        <p>No hay foto cargada.</p>
+                    {% endif %}
+                    <input type="file" name="foto" class="form-control mb-3">
+                </div>
+
+                <div class="mt-4">
+                    <h5>Foto de la licencia actual:</h5>
+                    {% if chofer.licencia %}
+                        <img src="{{ chofer.licencia.url }}" alt="Licencia actual" class="img-thumbnail mb-2" style="max-width: 200px;">
+                    {% else %}
+                        <p>No hay foto de licencia cargada.</p>
+                    {% endif %}
+                    <input type="file" name="licencia" class="form-control mb-3">
+                </div>
+
+                <button type="submit" class="btn btn-success mt-3">Guardar cambios</button>
+            </form>
+        </div>
+
         <!-- Pestaña "Conexiones" -->
         <div class="tab-pane fade text-center" id="conexiones">
             <a href="{% url 'conectar_mercadopago' %}" class="btn btn-primary">
@@ -192,6 +237,21 @@
         let estado = this.checked;
         document.getElementById('estado-label').textContent = estado ? "Disponible" : "No disponible";
         actualizarEstadoChofer(estado);
+
+        if (estado) {
+            // 🟢 Disponible → activar el intervalo si no está corriendo
+            if (!intervaloAsignacion) {
+                intervaloAsignacion = setInterval(verificarAsignacion, 5000);
+                console.log("🔄 Verificación activada");
+            }
+        } else {
+            // 🔴 No disponible → detener la verificación
+            if (intervaloAsignacion) {
+                clearInterval(intervaloAsignacion);
+                intervaloAsignacion = null;
+                console.log("⛔ Verificación detenida");
+            }
+        }
     });
 
     function actualizarEstadoChofer(disponible) {
@@ -211,6 +271,7 @@
     // Variables globales para la instancia del mapa y el viaje actual
     var map = null;
     var viajeActual = null;
+    let intervaloAsignacion = null;
 
     // Verificar cada 5 segundos si hay un viaje asignado
     function verificarAsignacion() {
@@ -554,7 +615,7 @@
     }
     
     // Iniciar la verificación de asignación cada 5 segundos
-    setInterval(verificarAsignacion, 5000);
+    // setInterval(verificarAsignacion, 5000);
 </script>
 
 <!--WEBSOCKETS-->
@@ -649,7 +710,34 @@ function actualizarUbicacionChofer(lat, lon) {
 }
 </script>
 
+<!-- CDN de DataTables -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const idChofer = '{{ chofer.id_chofer }}';
+
+    $('#tabla-viajes').DataTable({
+        ajax: {
+            url: `/viajes-chofer/${idChofer}/`,
+            dataSrc: 'data'
+        },
+        columns: [
+            { data: 'fecha' },
+            { data: 'cliente' },
+            { data: 'dir_salida' },
+            { data: 'dir_destino' },
+            { data: 'precio' }
+        ],
+        pageLength: 5,
+        language: {
+            url: "//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json"
+        }
+    });
+});
+</script>
 
 
 

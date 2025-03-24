@@ -1,0 +1,16 @@
+{
+    "html_pedidos_select": `
+        {% for pedido in pedidos %}
+        <option value="{{ pedido.id_pedido }}">
+            {{ pedido.id_cliente.nombre }} - {{ pedido.dir_salida }} -> {{ pedido.dir_destino }}
+        </option>
+        {% endfor %}
+    `,
+    "html_choferes_select": `
+        {% for chofer in choferes %}
+        <option value="{{ chofer.id_chofer.id_chofer }}">
+            {{ chofer.id_chofer.nombre }} - {{ chofer.patente }}
+        </option>
+        {% endfor %}
+    `
+}

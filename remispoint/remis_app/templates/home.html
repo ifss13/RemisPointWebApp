@@ -300,7 +300,10 @@
                     map.fitBounds(rutaAnterior.getBounds());
 
                     var distancia = data.features[0].properties.segments[0].distance / 1000; // Convertir a km
-                    var distanciaRedondeada = Math.round(distancia * 10) / 10; // Redondear a 1 decimal
+                    var distanciaRedondeada = Math.round(distancia * 10) / 10;
+                    if (distanciaRedondeada < 1.0) {
+                        distanciaRedondeada = 1.0; // Precio mínimo para trayectos cortos
+                    } // Redondear a 1 decimal
 
                     // Petición AJAX a Django para obtener el precio
                     fetch(`/obtener_precio/?distancia=${distanciaRedondeada}`)

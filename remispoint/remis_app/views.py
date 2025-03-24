@@ -205,7 +205,7 @@ def enviar_notificacion(request):
 
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
-from .models import Rating, Viaje  # Necesitamos Viaje para obtener el id_viaje
+from .models import Rating, Viaje  
 
 def calificar_chofer(request, id_viaje):
     viaje = get_object_or_404(Viaje, id_viaje=id_viaje)
@@ -330,3 +330,98 @@ def reportes_viajes(request):
         'recaudacionSemana': sum(recaudacion_por_semana),
         'recaudacionMes': total_recaudado_mes,
     })
+
+from django.http import JsonResponse
+from .models import Viaje
+
+def viajes_por_chofer(request, id_chofer):
+    viajes = Viaje.objects.filter(id_chofer=id_chofer).order_by('-fecha')
+
+    data = []
+    for v in viajes:
+        data.append({
+            "fecha": v.fecha.strftime("%d/%m/%Y %H:%M"),
+            "cliente": f"{v.id_cliente.nombre} {v.id_cliente.apellido}",
+            "dir_salida": v.dir_salida,
+            "dir_destino": v.dir_destino,
+            "precio": f"${v.id_precio.precio}",
+        })
+
+    return JsonResponse({"data": data})
+
+
+from django.shortcuts import render, redirect, get_object_or_404
+from .models import Chofer
+
+def actualizar_datos_chofer(request, id_chofer):
+    chofer = get_object_or_404(Chofer, id_chofer=id_chofer)
+
+    if request.method == 'POST':
+        if 'foto' in request.FILES:
+            chofer.foto = request.FILES['foto']
+        if 'licencia' in request.FILES:
+            chofer.licencia = request.FILES['licencia']
+        chofer.save()
+        return redirect('panel_chofer')
+
+    return redirect('templates/chofer/panel_chofer.html')
+
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from remis_app.models import Remiseria
+import json
+
+@csrf_exempt
+def verificar_codigo_remiseria(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            codigo_ingresado = data.get('codigo')
+
+            remiseria = Remiseria.objects.filter(password=codigo_ingresado).first()
+            if remiseria:
+                request.session['id_remiseria'] = remiseria.id_remiseria
+                return JsonResponse({'success': True})
+            else:
+                return JsonResponse({'success': False})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+    return JsonResponse({'success': False, 'error': 'Método no permitido'})
+
+
+from django.template.loader import render_to_string
+from django.http import JsonResponse
+from remis_app.models import PedidosCliente, ChoferAuto
+
+def actualizar_panel_base(request):
+    id_remiseria = request.session.get("id_remiseria")
+
+    if not id_remiseria:
+        return JsonResponse({"error": "No se detectó remisería activa."}, status=400)
+
+    # Filtrar pedidos pendientes y choferes disponibles por remisería
+    pedidos = PedidosCliente.objects.filter(id_remiseria=id_remiseria, estado_pedido="Pendiente")
+    choferes = ChoferAuto.objects.filter(id_chofer__id_remiseria=id_remiseria, disponibilidad=True)
+    viajes = Viaje.objects.filter(
+        id_remiseria=id_remiseria,
+        estado__in=["Asignado", "En camino al cliente", "En viaje"]
+    )
+
+    # Renderizar los fragmentos de tabla
+    html_pedidos = render_to_string("administracion_base/tabla_pedidos.html", {"pedidos": pedidos})
+    html_choferes = render_to_string("administracion_base/tabla_chofer.html", {"choferes": choferes})
+    html_pedidos_select = render_to_string("administracion_base/opciones_pedidos.html", {"pedidos": pedidos})
+    html_choferes_select = render_to_string("administracion_base/opciones_choferes.html", {"choferes": choferes})
+    html_viajes = render_to_string("administracion_base/tabla_viajes.html", {"viajes": viajes})
+
+
+    return JsonResponse({
+        "html_pedidos": html_pedidos,
+        "html_choferes": html_choferes,
+        "html_pedidos_select": html_pedidos_select,
+        "html_choferes_select": html_choferes_select,
+        "html_viajes": html_viajes
+    })
+

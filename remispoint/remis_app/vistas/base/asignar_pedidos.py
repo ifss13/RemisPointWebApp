@@ -16,14 +16,23 @@ from django.utils import timezone
 @base_required
 def asignar_pedidos(request):
     if request.method == "GET":
-        pedidos_pendientes = PedidosCliente.objects.filter(estado_pedido="Pendiente")
-        choferes_disponibles = ChoferAuto.objects.filter(disponibilidad=True)
-        viajes_en_viaje = Viaje.objects.filter(estado="Asignado")
-        autos = Auto.objects.all()
-        remiserias = Remiseria.objects.all()
-        choferes = Chofer.objects.all()
-        asignaciones = ChoferAuto.objects.select_related('patente', 'id_chofer')  # Datos de la tabla puente
-        viajes_registrados = Viaje.objects.all()
+        id_remiseria = request.session.get("id_remiseria")
+
+        if not id_remiseria:
+            messages.error(request, "No se detectó remisería activa. Por favor, volvé a ingresar el código.")
+            return redirect("panel_cuenta")
+
+        pedidos_pendientes = PedidosCliente.objects.filter(id_remiseria=id_remiseria, estado_pedido="Pendiente")
+        choferes_disponibles = ChoferAuto.objects.filter(id_chofer__id_remiseria=id_remiseria, disponibilidad=True)
+        viajes_en_viaje = Viaje.objects.filter(
+            id_remiseria=id_remiseria,
+            estado__in=["Asignado", "En camino al cliente", "En viaje"]
+        )
+        autos = Auto.objects.filter(id_remiseria=id_remiseria)
+        remiserias = Remiseria.objects.filter(id_remiseria=id_remiseria)
+        choferes = Chofer.objects.filter(id_remiseria=id_remiseria)
+        asignaciones = ChoferAuto.objects.select_related('patente', 'id_chofer').filter(id_chofer__id_remiseria=id_remiseria)
+        viajes_registrados = Viaje.objects.filter(id_remiseria=id_remiseria)
         tipopago = TipoPago.objects.all()
 
         return render(request, "administracion_base/base_pedidos.html", {

@@ -46,6 +46,21 @@ class Cliente(models.Model):
     def __str__(self):
         return self.nombre
 
+class Remiseria(models.Model):
+    id_remiseria = models.AutoField(primary_key=True)  # La clave primaria será un campo entero auto-incremental
+    nombre = models.CharField(max_length=255)  # Ajusta el max_length según el tamaño de la cadena
+    telefono = models.CharField(max_length=255)  # Ajusta el max_length según el tamaño de la cadena
+    password = models.CharField(max_length=255)  # Para almacenar contraseñas (deberías considerar usar Django's User model o algún hash para seguridad)
+    foto = models.ImageField(upload_to='remiserias/', blank=True, null=True)
+    esta_abierta = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'Remiseria'
+        managed = False
+
+    def __str__(self):
+        return self.nombre  # Este método es opcional y proporciona una representación legible del objeto
+
 # Tabla Chofer
 class Chofer(models.Model):
     id_chofer = models.AutoField(primary_key=True)
@@ -56,6 +71,7 @@ class Chofer(models.Model):
     foto = models.ImageField(upload_to='choferes/foto/', blank=True, null=True)
     id_cliente = models.ForeignKey(Cliente,on_delete=models.CASCADE, db_column="id_cliente")
     mp_user_id = models.CharField(max_length=255)
+    id_remiseria = models.ForeignKey(Remiseria, on_delete=models.CASCADE, db_column="id_remiseria" )
     class Meta:
         db_table = 'Chofer'
         managed = False
@@ -154,22 +170,8 @@ class Viaje(models.Model):
     def __str__(self):
         return f"Viaje {self.id_viaje} - Cliente {self.id_cliente.nombre}"
 
-class Remiseria(models.Model):
-    id_remiseria = models.AutoField(primary_key=True)  # La clave primaria será un campo entero auto-incremental
-    nombre = models.CharField(max_length=255)  # Ajusta el max_length según el tamaño de la cadena
-    telefono = models.CharField(max_length=255)  # Ajusta el max_length según el tamaño de la cadena
-    password = models.CharField(max_length=255)  # Para almacenar contraseñas (deberías considerar usar Django's User model o algún hash para seguridad)
-    foto = models.ImageField(upload_to='remiserias/', blank=True, null=True)
-    esta_abierta = models.BooleanField(default=True)
 
-    def __str__(self):
-        return self.nombre  # Este método es opcional y proporciona una representación legible del objeto
     
-
-    class Meta:
-        db_table = 'Remiseria'  # Nombre de la tabla en la base de datos (si no es el mismo que el del modelo)
-        managed = False  # Para que no sea gestionada por Django
-        
 # Tabla PedidoCliente 
 class PedidosCliente(models.Model):
     id_pedido = models.AutoField(primary_key=True)

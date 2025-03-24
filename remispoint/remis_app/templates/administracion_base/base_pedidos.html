@@ -40,7 +40,7 @@
                                 <th>Accion</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="tabla-pedidos-body">
                             {% for pedido in pedidos %}
                             <tr>
                                 <td>{{ pedido.id_pedido }}</td>
@@ -65,7 +65,7 @@
                                 <th>Auto</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="tabla-choferes-body">
                             {% for chofer in choferes %}
                             <tr>
                                 <td>{{ chofer.id_chofer.id_chofer }}</td>
@@ -117,7 +117,7 @@
                         <th>Acción</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="tabla-viajes-body">
                     {% for viaje in viajes_en_viaje %}
                     <tr>
                         <td>{{ viaje.id_viaje }}</td>
@@ -314,4 +314,41 @@
         });
     });
 </script>
+<script>
+    function actualizarTablasBase() {
+        fetch("{% url 'actualizar_panel_base' %}")
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("tabla-pedidos-body").innerHTML = data.html_pedidos;
+                document.getElementById("tabla-choferes-body").innerHTML = data.html_choferes;
+                document.getElementById("idPedido").innerHTML = data.html_pedidos_select;
+                document.getElementById("id_chofer").innerHTML = data.html_choferes_select;
+                document.getElementById("tabla-viajes-body").innerHTML = data.html_viajes;
+
+
+    
+                // Reasignar eventos a los nuevos botones "cancelar"
+                document.querySelectorAll(".cancelar-pedido").forEach(button => {
+                    button.addEventListener("click", function() {
+                        const pedidoId = this.getAttribute("data-pedido-id");
+                        if (confirm("¿Estás seguro de que querés cancelar este pedido?")) {
+                            fetch(`/cancelar_pedido_base/${pedidoId}/`, {
+                                method: "POST",
+                                headers: {
+                                    "X-CSRFToken": "{{ csrf_token }}"
+                                }
+                            })
+                            .then(resp => resp.json())
+                            .then(data => location.reload());
+                        }
+                    });
+                });
+            })
+            .catch(error => console.error("Error al actualizar tablas:", error));
+    }
+    
+    // Ejecutar cada 10 segundos
+    setInterval(actualizarTablasBase, 10000);
+    </script>
+    
 {% endblock %}

@@ -7,11 +7,11 @@
     {% load static %}
     <!-- Favicon clásico -->
     <link rel="icon" type="image/x-icon" href="{% static 'images/favicon.ico' %}">
-
+    
     <!-- Favicon para navegadores modernos -->
     <link rel="icon" type="image/png" sizes="32x32" href="{% static 'images/favicon-32x32.png' %}">
     <link rel="icon" type="image/png" sizes="16x16" href="{% static 'images/favicon-16x16.png' %}">
-
+    
     <!-- Icono para dispositivos Android -->
     <link rel="icon" type="image/png" sizes="192x192" href="{% static 'images/android-chrome-192x192.png' %}">
     <link rel="icon" type="image/png" sizes="512x512" href="{% static 'images/android-chrome-512x512.png' %}">
@@ -310,7 +310,7 @@
 
         <!-- Footer -->
         <footer>
-            <p>&copy; 2024 RemisPoint. Todos los derechos reservados.</p>
+            <div><p>&copy; 2025 RemisPoint. Todos los derechos reservados.</p></div>
         </footer>
     </div>
 
@@ -435,7 +435,16 @@
         {% endif %}
     </div>
 </nav>
+<script type="text/javascript" src="https://cdn.weglot.com/weglot.min.js"></script>
+<script>
+    Weglot.initialize({
+        api_key: 'wg_fd351db0e39186211a7235fa000be3a07'
+    });
+</script>
+    
 
+    
+    
 </body>
 <meta name="csrf-token" content="{{ csrf_token }}">
 

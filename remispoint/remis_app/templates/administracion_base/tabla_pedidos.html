@@ -1,0 +1,13 @@
+{% for pedido in pedidos %}
+<tr>
+    <td>{{ pedido.id_pedido }}</td>
+    <td>{{ pedido.id_cliente.nombre }}</td>
+    <td>{{ pedido.dir_salida }}</td>
+    <td>{{ pedido.dir_destino }}</td>
+    <td>
+        <button class="btn btn-danger cancelar-pedido" data-pedido-id="{{ pedido.id_pedido }}">
+            Cancelar
+        </button>
+    </td>
+</tr>
+{% endfor %}

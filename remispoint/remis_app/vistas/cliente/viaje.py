@@ -8,7 +8,11 @@ def viaje(request):
         cliente = Cliente.objects.get(correo=request.user.email)
 
         # Buscar el viaje asignado
-        viaje = Viaje.objects.filter(id_cliente=cliente.id_cliente, estado="Asignado").first()
+        viaje = Viaje.objects.filter(
+            id_cliente=cliente.id_cliente,
+            estado__in=["Asignado", "En camino al cliente", "En viaje"]
+        ).first()
+
 
         if not viaje:
             return render(request, 'clientes/viaje.html', {'error': "No tienes un viaje en progreso."})

@@ -1,0 +1,5 @@
+{% for pedido in pedidos %}
+<option value="{{ pedido.id_pedido }}">
+    {{ pedido.id_cliente.nombre }} - {{ pedido.dir_salida }} → {{ pedido.dir_destino }}
+</option>
+{% endfor %}

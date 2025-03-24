@@ -1,0 +1,15 @@
+{% for viaje in viajes %}
+<tr>
+    <td>{{ viaje.id_viaje }}</td>
+    <td>{{ viaje.id_cliente.nombre }}</td>
+    <td>{{ viaje.patente }}</td>
+    <td>{{ viaje.dir_salida }}</td>
+    <td>{{ viaje.dir_destino }}</td>
+    <td>{{ viaje.estado }}</td>
+    <td>
+        {% if viaje.estado == "Asignado" %}
+            <button onclick="finalizarViaje('{{ viaje.id_viaje }}')">Cancelar</button>
+        {% endif %}
+    </td>
+</tr>
+{% endfor %}
