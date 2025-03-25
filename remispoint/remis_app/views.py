@@ -425,3 +425,21 @@ def actualizar_panel_base(request):
         "html_viajes": html_viajes
     })
 
+# remis_app/views_admin.py
+from django.contrib.auth.decorators import user_passes_test
+from django.shortcuts import render
+from remis_app.models import Cliente, Chofer, Viaje, PedidosCliente, Remiseria, Localidad
+from django.contrib.auth.models import User
+
+@user_passes_test(lambda u: u.is_superuser)
+def panel_superadmin(request):
+    contexto = {
+        'usuarios': User.objects.all(),
+        'clientes': Cliente.objects.select_related('id_localidad').all(),
+        'choferes': Chofer.objects.all(),
+        'viajes': Viaje.objects.all(),
+        'pedidos': PedidosCliente.objects.all(),
+        'remiserias': Remiseria.objects.all(),
+        'localidades': Localidad.objects.all(),
+    }
+    return render(request, 'admin_super/admin_super.html', contexto)

@@ -1,0 +1,147 @@
+<div class="d-flex justify-content-between align-items-center mb-2">
+    <h5 class="mb-0">Choferes</h5>
+    <button class="btn btn-success btn-sm" onclick="abrirModalChofer()">+ Nuevo Chofer</button>
+  </div>
+  
+  <table id="tabla-choferes" class="table table-striped table-hover table-sm">
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>Apellido</th>
+        <th>Teléfono</th>
+        <th>Cliente</th>
+        <th>Remisería</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for chofer in choferes %}
+      <tr id="fila-chofer-{{ chofer.id_chofer }}">
+        <td>{{ chofer.nombre }}</td>
+        <td>{{ chofer.apellido }}</td>
+        <td>{{ chofer.nro_tel }}</td>
+        <td>{{ chofer.id_cliente.nombre }} {{ chofer.id_cliente.apellido }}</td>
+        <td>{{ chofer.id_remiseria.nombre }}</td>
+        <td>
+          <button class="btn btn-sm btn-primary" onclick="editarChofer('{{ chofer.id_chofer }}')">Editar</button>
+          <button class="btn btn-sm btn-danger" onclick="eliminarChofer('{{ chofer.id_chofer }}')">Eliminar</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  
+  <!-- Modal -->
+  <div class="modal fade" id="choferModal" tabindex="-1" aria-labelledby="choferModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <form id="formChofer" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="modal-header">
+            <h5 class="modal-title" id="choferModalLabel">Chofer</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+          <div class="modal-body" id="formChoferBody"></div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-primary">Guardar</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+  <script>
+    // Declaración global
+    let choferIdActual = null;
+  
+    // Abrir modal para nuevo chofer
+    function abrirModalChofer() {
+      choferIdActual = null;
+      fetch("{% url 'nuevo_chofer' %}")
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById("choferModalLabel").innerText = "Nuevo Chofer";
+          document.getElementById("formChoferBody").innerHTML = data.html_form;
+          new bootstrap.Modal(document.getElementById("choferModal")).show();
+        });
+    }
+  
+    // Abrir modal para editar chofer
+    function editarChofer(id) {
+      choferIdActual = id;
+      fetch(`/superadmin/form-chofer/${id}/`)
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById("choferModalLabel").innerText = "Editar Chofer";
+          document.getElementById("formChoferBody").innerHTML = data.html_form;
+          new bootstrap.Modal(document.getElementById("choferModal")).show();
+        });
+    }
+  
+    // Eliminar chofer
+    function eliminarChofer(id) {
+      if (confirm(`¿Estás seguro que querés eliminar al chofer #${id}?`)) {
+        fetch(`/superadmin/eliminar-chofer/${id}/`, {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+          }
+        }).then(res => {
+          if (res.ok) {
+            document.getElementById(`fila-chofer-${id}`).remove();
+          } else {
+            alert("Error al eliminar el chofer.");
+          }
+        });
+      }
+    }
+  
+    // Envío del formulario de chofer
+    document.getElementById("formChofer").addEventListener("submit", function (e) {
+      e.preventDefault();
+      const form = e.target;
+      const formData = new FormData(form);
+  
+      const url = choferIdActual
+        ? `/superadmin/guardar-chofer/${choferIdActual}/`
+        : `/superadmin/guardar-chofer/`;
+  
+      fetch(url, {
+        method: "POST",
+        body: formData,
+        headers: {
+          'X-CSRFToken': '{{ csrf_token }}'
+        }
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            location.reload(); // podés mejorar esto con AJAX después
+          } else {
+            document.getElementById("formChoferBody").innerHTML = data.html_form;
+          }
+        });
+    });
+  
+    // Inicializar DataTables
+    $(document).ready(function () {
+      $('#tabla-choferes').DataTable({
+        pageLength: 15,
+        language: {
+          url: '//cdn.datatables.net/plug-ins/1.13.1/i18n/es-ES.json'
+        }
+      });
+    });
+  </script>
+  
+  

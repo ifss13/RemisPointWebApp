@@ -18,6 +18,9 @@ def asignar_pedidos(request):
     if request.method == "GET":
         id_remiseria = request.session.get("id_remiseria")
 
+        ids_chofers = list(Chofer.objects.values_list('id_cliente', flat=True))
+        clientes_chofer = Cliente.objects.filter(tipo_cuenta=Cliente.CHOFER).exclude(id_cliente__in=ids_chofers)
+        
         if not id_remiseria:
             messages.error(request, "No se detectó remisería activa. Por favor, volvé a ingresar el código.")
             return redirect("panel_cuenta")
@@ -44,7 +47,8 @@ def asignar_pedidos(request):
             "choferes_list": choferes,
             "asignaciones": asignaciones,
             "viajes_registrados": viajes_registrados,
-            "tipopago": tipopago,  
+            "tipopago": tipopago,
+            "clientes_chofer": clientes_chofer,
         })
 
 
@@ -183,22 +187,33 @@ def asignar_pedidos(request):
 
 
 
-        # Crear chofer
         elif operation == "crear_chofer":
             try:
+                id_cliente = int(request.POST.get("id_cliente"))
                 nombre = request.POST.get("nombre")
                 apellido = request.POST.get("apellido")
                 nro_tel = request.POST.get("nro_tel")
                 licencia = request.FILES.get("licencia")
-                foto = request.FILES.get("foto")  # Nuevo campo
+                foto = request.FILES.get("foto")
+
+                remiseria_id = request.session.get("id_remiseria")
+                if not remiseria_id:
+                    messages.error(request, "No se detectó remisería activa.")
+                    return redirect("panel_cuenta")
+
+                cliente = get_object_or_404(Cliente, id_cliente=id_cliente, tipo_cuenta=Cliente.CHOFER)
 
                 Chofer.objects.create(
+                    id_cliente=cliente,
                     nombre=nombre,
                     apellido=apellido,
                     nro_tel=nro_tel,
                     licencia=licencia,
-                    foto=foto
+                    foto=foto,
+                    mp_user_id=None,  # <-- lo dejamos vacío
+                    id_remiseria_id=remiseria_id
                 )
+
                 messages.success(request, "Chofer creado correctamente.")
             except Exception as e:
                 messages.error(request, f"Error al crear el chofer: {str(e)}")

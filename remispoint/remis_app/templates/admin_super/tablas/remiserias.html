@@ -1,0 +1,124 @@
+<div class="d-flex justify-content-between align-items-center mb-2">
+    <h5 class="mb-0">Remiserías</h5>
+    <button class="btn btn-success btn-sm" onclick="abrirModalRemiseria()">+ Nueva Remisería</button>
+  </div>
+  
+  <table id="tabla-remiserias" class="table table-striped table-hover table-sm">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Nombre</th>
+        <th>Teléfono</th>
+        <th>¿Abierta?</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in remiserias %}
+      <tr id="fila-remiseria-{{ r.id_remiseria }}">
+        <td>{{ r.id_remiseria }}</td>
+        <td>{{ r.nombre }}</td>
+        <td>{{ r.telefono }}</td>
+        <td>{{ r.esta_abierta|yesno:"Sí,No" }}</td>
+        <td>
+          <button class="btn btn-sm btn-primary" onclick="editarRemiseria('{{ r.id_remiseria }}')">Editar</button>
+          <button class="btn btn-sm btn-danger" onclick="eliminarRemiseria('{{ r.id_remiseria }}')">Eliminar</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  
+  <!-- Modal -->
+  <div class="modal fade" id="remiseriaModal" tabindex="-1" aria-labelledby="remiseriaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <form id="formRemiseria" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="modal-header">
+            <h5 class="modal-title" id="remiseriaModalLabel">Remisería</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+          <div class="modal-body" id="formRemiseriaBody"></div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-primary">Guardar</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <script>
+    let remiseriaIdActual = null;
+  
+    function abrirModalRemiseria() {
+      remiseriaIdActual = null;
+      fetch("{% url 'nueva_remiseria' %}")
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById("remiseriaModalLabel").innerText = "Nueva Remisería";
+          document.getElementById("formRemiseriaBody").innerHTML = data.html_form;
+          new bootstrap.Modal(document.getElementById("remiseriaModal")).show();
+        });
+    }
+  
+    function editarRemiseria(id) {
+      remiseriaIdActual = id;
+      fetch(`/superadmin/form-remiseria/${id}/`)
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById("remiseriaModalLabel").innerText = "Editar Remisería";
+          document.getElementById("formRemiseriaBody").innerHTML = data.html_form;
+          new bootstrap.Modal(document.getElementById("remiseriaModal")).show();
+        });
+    }
+  
+    function eliminarRemiseria(id) {
+      if (confirm(`¿Eliminar la remisería #${id}?`)) {
+        fetch(`/superadmin/eliminar-remiseria/${id}/`, {
+          method: 'POST',
+          headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        }).then(res => {
+          if (res.ok) {
+            document.getElementById(`fila-remiseria-${id}`).remove();
+          } else {
+            alert("Error al eliminar la remisería.");
+          }
+        });
+      }
+    }
+  
+    document.getElementById("formRemiseria").addEventListener("submit", function (e) {
+      e.preventDefault();
+      const form = e.target;
+      const formData = new FormData(form);
+      const url = remiseriaIdActual
+        ? `/superadmin/guardar-remiseria/${remiseriaIdActual}/`
+        : `/superadmin/guardar-remiseria/`;
+  
+      fetch(url, {
+        method: "POST",
+        body: formData,
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            location.reload();
+          } else {
+            document.getElementById("formRemiseriaBody").innerHTML = data.html_form;
+          }
+        });
+    });
+  
+    $(document).ready(function () {
+      $('#tabla-remiserias').DataTable({
+        pageLength: 15,
+        order: [[0, 'desc']],
+        language: {
+          url: '//cdn.datatables.net/plug-ins/1.13.1/i18n/es-ES.json'
+        }
+      });
+    });
+  </script>
+    

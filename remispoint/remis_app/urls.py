@@ -20,6 +20,7 @@ urlpatterns = [
     path("", include("remis_app.vistas.chofer.urls")),
     path("", include("remis_app.vistas.base.urls")),
     path("", include("remis_app.vistas.mp_auth.urls")),
+    path('superadmin/', include('remis_app.vistas.superadmin.urls')),
     path('enviar-notificacion/', views.enviar_notificacion, name='enviar_notificacion'),
     path('calificar-chofer/<int:id_viaje>/', views.calificar_chofer, name='calificar_chofer'),
     path('cancelar_viaje_asignado/<int:viaje_id>/', views.cancelar_viaje_asignado, name="cancelar_viaje_asignado"),
@@ -28,6 +29,7 @@ urlpatterns = [
     path('actualizar-datos-chofer/<int:id_chofer>/', views.actualizar_datos_chofer, name='actualizar_datos_chofer'),
     path('verificar-codigo-remiseria/', views.verificar_codigo_remiseria, name='verificar_codigo_remiseria'),
     path("actualizar-panel-base/", views.actualizar_panel_base, name="actualizar_panel_base"),
+    path('superadmin/', views.panel_superadmin, name='panel_superadmin'),
 ]
 
 

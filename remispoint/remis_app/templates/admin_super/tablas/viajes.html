@@ -1,0 +1,142 @@
+<div class="d-flex justify-content-between align-items-center mb-2">
+    <h5 class="mb-0">Viajes</h5>
+    <button class="btn btn-success btn-sm" onclick="abrirModalViaje()">+ Nuevo Viaje</button>
+  </div>
+  
+  <table id="tabla-viajes" class="table table-striped table-hover table-sm">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Cliente</th>
+        <th>Salida</th>
+        <th>Destino</th>
+        <th>Fecha</th>
+        <th>Hora</th>
+        <th>Chofer</th>
+        <th>Auto</th>
+        <th>Remisería</th>
+        <th>Estado</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for viaje in viajes %}
+      <tr id="fila-viaje-{{ viaje.id_viaje }}">
+        <td>{{ viaje.id_viaje }}</td>
+        <td>{{ viaje.id_cliente.nombre }} {{ viaje.id_cliente.apellido }}</td>
+        <td>{{ viaje.dir_salida }}</td>
+        <td>{{ viaje.dir_destino }}</td>
+        <td>{{ viaje.fecha }}</td>
+        <td>{{ viaje.hora }}</td>
+        <td>{{ viaje.id_chofer.nombre }} {{ viaje.id_chofer.apellido }}</td>
+        <td>{{ viaje.patente }}</td>
+        <td>{{ viaje.id_remiseria }}</td>
+        <td>{{ viaje.estado }}</td>
+        <td>
+          <button class="btn btn-sm btn-primary" onclick="editarViaje('{{ viaje.id_viaje }}')">Editar</button>
+          <button class="btn btn-sm btn-danger" onclick="eliminarViaje('{{ viaje.id_viaje }}')">Eliminar</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+  <!-- Modal -->
+  <div class="modal fade" id="viajeModal" tabindex="-1" aria-labelledby="viajeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <form id="formViaje">
+          {% csrf_token %}
+          <div class="modal-header">
+            <h5 class="modal-title" id="viajeModalLabel">Viaje</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+          <div class="modal-body" id="formViajeBody"></div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-primary">Guardar</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let viajeIdActual = null;
+  
+    function abrirModalViaje() {
+      viajeIdActual = null;
+      fetch("{% url 'nuevo_viaje' %}")
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById("viajeModalLabel").innerText = "Nuevo Viaje";
+          document.getElementById("formViajeBody").innerHTML = data.html_form;
+          new bootstrap.Modal(document.getElementById("viajeModal")).show();
+        });
+    }
+  
+    function editarViaje(id) {
+      viajeIdActual = id;
+      fetch(`/superadmin/form-viaje/${id}/`)
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById("viajeModalLabel").innerText = "Editar Viaje";
+          document.getElementById("formViajeBody").innerHTML = data.html_form;
+          new bootstrap.Modal(document.getElementById("viajeModal")).show();
+        });
+    }
+  
+    function eliminarViaje(id) {
+      if (confirm(`¿Eliminar el viaje #${id}?`)) {
+        fetch(`/superadmin/eliminar-viaje/${id}/`, {
+          method: 'POST',
+          headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        }).then(res => {
+          if (res.ok) {
+            document.getElementById(`fila-viaje-${id}`).remove();
+          } else {
+            alert("Error al eliminar el viaje.");
+          }
+        });
+      }
+    }
+  
+    document.getElementById("formViaje").addEventListener("submit", function (e) {
+      e.preventDefault();
+      const form = e.target;
+      const formData = new FormData(form);
+      const url = viajeIdActual ? `/superadmin/guardar-viaje/${viajeIdActual}/` : `/superadmin/guardar-viaje/`;
+  
+      fetch(url, {
+        method: "POST",
+        body: formData,
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            location.reload();
+          } else {
+            document.getElementById("formViajeBody").innerHTML = data.html_form;
+          }
+        });
+    });
+  
+    $(document).ready(function () {
+      $('#tabla-viajes').DataTable({
+        pageLength: 15,
+        order: [[0, 'desc']], 
+        language: {
+          url: '//cdn.datatables.net/plug-ins/1.13.1/i18n/es-ES.json'
+        }
+      });
+    });
+  </script>
+  

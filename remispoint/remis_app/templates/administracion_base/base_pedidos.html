@@ -107,6 +107,7 @@
             <br>
             <table class="table table-striped">
                 <thead>
+                    <h4>Viajes en proceso</h4>
                     <tr>
                         <th>ID</th>
                         <th>Cliente</th>
@@ -137,12 +138,15 @@
                     {% endfor %}
                 </tbody>
             </table>
+            <div>
+                {% include 'administracion_base/mapa_choferes.html' %}
+            </div>
         </div>
 
         <!-- Pestaña Choferes -->
         <div class="tab-pane fade" id="choferes" role="tabpanel" aria-labelledby="choferes-tab">
             <h4>Choferes</h4>
-            {% include "administracion_base/choferes/listar_choferes.html" %}
+            {% include "administracion_base/choferes/listar_choferes.html" with clientes_chofer=clientes_chofer %}
         </div>
 
         <!-- Pestaña Autos -->
@@ -234,10 +238,9 @@
         </div>
         <!-- Pestaña Registro de Viajes -->
         <div class="tab-pane fade" id="registro-viajes" role="tabpanel" aria-labelledby="registro-viajes-tab">
-            
             {% include "administracion_base/registro_viajes/registro_viajes.html" %}
         </div>
-        
+
     </div>
 </div>
 

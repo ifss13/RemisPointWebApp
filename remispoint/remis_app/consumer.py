@@ -64,3 +64,30 @@ class LocationConsumer(AsyncWebsocketConsumer):
             "longitude": event["longitude"],
             "viaje_id": event["viaje_id"]
         }))
+
+class BaseConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        await self.channel_layer.group_add("base", self.channel_name)
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard("base", self.channel_name)
+
+    async def receive(self, text_data):
+        data = json.loads(text_data)
+        if data.get("type") == "ubicacion_chofer":
+            await self.channel_layer.group_send(
+                "base",
+                {
+                    "type": "send_location",
+                    "chofer_id": data["chofer_id"],
+                    "nombre": data["nombre"],
+                    "latitude": data["latitude"],
+                    "longitude": data["longitude"]
+                }
+            )
+
+
+    async def send_location(self, event):
+        await self.send(text_data=json.dumps(event))
+

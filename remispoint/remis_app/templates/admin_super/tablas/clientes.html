@@ -1,0 +1,147 @@
+<div class="d-flex justify-content-between align-items-center mb-2">
+  <h5 class="mb-0">Clientes</h5>
+  <button class="btn btn-success btn-sm" onclick="abrirModalCliente()">+ Nuevo Cliente</button>
+</div>
+
+<table id="tabla-clientes" class="table table-striped table-hover table-sm">
+  <thead>
+    <tr>
+      <th>Nombre</th>
+      <th>Apellido</th>
+      <th>Usuario</th>
+      <th>Teléfono</th>
+      <th>Correo</th>
+      <th>Dirección</th>
+      <th>Tipo</th>
+      <th>Localidad</th>
+      <th>Acciones</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for cliente in clientes %}
+    <tr id="fila-cliente-{{ cliente.id_cliente }}">
+      <td>{{ cliente.nombre }}</td>
+      <td>{{ cliente.apellido }}</td>
+      <td>{{ cliente.username }}</td>
+      <td>{{ cliente.telefono }}</td>
+      <td>{{ cliente.correo }}</td>
+      <td>{{ cliente.direccion }}</td>
+      <td>{{ cliente.get_tipo_cuenta_display }}</td>
+      <td>{{ cliente.id_localidad.nombre }}</td>
+      <td>
+        <button class="btn btn-sm btn-primary" onclick="editarCliente('{{ cliente.id_cliente }}')">Editar</button>
+        <button class="btn btn-sm btn-danger" onclick="eliminarCliente('{{ cliente.id_cliente }}')">Eliminar</button>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<!-- Modal Cliente -->
+<div class="modal fade" id="clienteModal" tabindex="-1" aria-labelledby="clienteModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <form id="formCliente">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title" id="clienteModalLabel">Cliente</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body" id="formClienteBody"></div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Guardar</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<!-- DataTables -->
+<script>
+  $(document).ready(function () {
+    $('#tabla-clientes').DataTable({
+      pageLength: 15,
+      language: {
+        url: '//cdn.datatables.net/plug-ins/1.13.1/i18n/es-ES.json'
+      }
+    });
+  });
+</script>
+
+<!-- CRUD JS -->
+<script>
+let clienteIdActual = null;
+
+function abrirModalCliente() {
+  clienteIdActual = null;
+  fetch("{% url 'nuevo_cliente' %}")
+    .then(res => res.json())
+    .then(data => {
+      document.getElementById("clienteModalLabel").innerText = "Nuevo Cliente";
+      document.getElementById("formClienteBody").innerHTML = data.html_form;
+      new bootstrap.Modal(document.getElementById("clienteModal")).show();
+    });
+}
+
+function editarCliente(id) {
+  clienteIdActual = id;
+  fetch(`/superadmin/form-cliente/${id}/`)
+    .then(res => res.json())
+    .then(data => {
+      document.getElementById("clienteModalLabel").innerText = "Editar Cliente";
+      document.getElementById("formClienteBody").innerHTML = data.html_form;
+      new bootstrap.Modal(document.getElementById("clienteModal")).show();
+    });
+}
+
+function eliminarCliente(id) {
+  if (confirm(`¿Estás seguro que querés eliminar al cliente #${id}?`)) {
+    fetch(`/superadmin/eliminar-cliente/${id}/`, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': '{{ csrf_token }}'
+      }
+    }).then(res => {
+      if (res.ok) {
+        document.getElementById(`fila-cliente-${id}`).remove();
+      } else {
+        alert("Error al eliminar el cliente.");
+      }
+    });
+  }
+}
+
+// Envío del formulario
+document.getElementById("formCliente").addEventListener("submit", function (e) {
+  e.preventDefault();
+  const form = e.target;
+  const formData = new FormData(form);
+  let url = clienteIdActual ? `/superadmin/guardar-cliente/${clienteIdActual}/` : `/superadmin/guardar-cliente/`;
+
+  fetch(url, {
+    method: "POST",
+    body: formData,
+    headers: {
+      'X-CSRFToken': '{{ csrf_token }}'
+    }
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        location.reload(); // recargá la tabla después de guardar
+      } else {
+        document.getElementById("formClienteBody").innerHTML = data.html_form;
+      }
+    });
+});
+</script>

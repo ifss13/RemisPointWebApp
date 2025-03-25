@@ -739,7 +739,73 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 </script>
 
+<script>
+    const protocol = location.protocol === "https:" ? "wss" : "ws";
+    let socketChofer = null;
+    let watchId = null;
 
+    function iniciarWebSocket() {
+        socketChofer = new WebSocket(protocol + '://' + window.location.host + '/ws/base/');
+        window.socketChofer = socketChofer;
+
+        socketChofer.onopen = () => {
+            console.log("✅ WebSocket conectado desde panel chofer");
+
+            if ("geolocation" in navigator) {
+                // Si ya hay un watch activo, cancelarlo
+                if (watchId !== null) {
+                    navigator.geolocation.clearWatch(watchId);
+                }
+
+                // Iniciar nuevo watchPosition
+                watchId = navigator.geolocation.watchPosition(pos => {
+                    const data = {
+                        type: "ubicacion_chofer",
+                        chofer_id: '{{ chofer.id_chofer }}',
+                        nombre: "{{ chofer.nombre }}",
+                        latitude: pos.coords.latitude,
+                        longitude: pos.coords.longitude
+                    };
+                    console.log("📤 Enviando ubicación:", data);
+                    if (socketChofer.readyState === WebSocket.OPEN) {
+                        socketChofer.send(JSON.stringify(data));
+                    }
+                }, err => {
+                    console.error("📍 Error al obtener ubicación:", err);
+                }, {
+                    enableHighAccuracy: true,
+                    maximumAge: 0,
+                    timeout: 10000
+                });
+            } else {
+                console.warn("⚠️ Geolocalización no disponible en este navegador.");
+            }
+        };
+
+        socketChofer.onerror = err => {
+            console.error("❌ Error en WebSocket:", err);
+        };
+
+        socketChofer.onclose = () => {
+            console.warn("🔌 WebSocket cerrado. Reintentando en 5 segundos...");
+            // Intentar reconexión
+            setTimeout(() => {
+                iniciarWebSocket();
+            }, 5000);
+        };
+
+        socketChofer.onmessage = event => {
+            console.log("📥 Mensaje recibido del servidor:", event.data);
+        };
+    }
+
+    // Iniciar WebSocket apenas carga
+    iniciarWebSocket();
+</script>
+
+
+
+    
 
 
 

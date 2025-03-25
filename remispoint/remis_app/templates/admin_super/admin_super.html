@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2 class="mb-4 text-center">Panel de Superadministrador</h2>
+
+  <!-- Pestañas de navegación -->
+  <ul class="nav nav-tabs" id="adminTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="clientes-tab" data-bs-toggle="tab" data-bs-target="#clientes" type="button" role="tab">Clientes</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="choferes-tab" data-bs-toggle="tab" data-bs-target="#choferes" type="button" role="tab">Choferes</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="viajes-tab" data-bs-toggle="tab" data-bs-target="#viajes" type="button" role="tab">Viajes</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="remiserias-tab" data-bs-toggle="tab" data-bs-target="#remiserias" type="button" role="tab">Remiserías</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="localidades-tab" data-bs-toggle="tab" data-bs-target="#localidades" type="button" role="tab">Localidades</button>
+    </li>
+  </ul>
+
+  <!-- Contenido de pestañas -->
+  <div class="tab-content pt-3" id="adminTabsContent">
+    <div class="tab-pane fade" id="clientes" role="tabpanel">
+      {% include "admin_super/tablas/clientes.html" %}
+    </div>
+    <div class="tab-pane fade" id="choferes" role="tabpanel">
+      {% include "admin_super/tablas/choferes.html" %}
+    </div>
+    <div class="tab-pane fade" id="viajes" role="tabpanel">
+      {% include "admin_super/tablas/viajes.html" %}
+    </div>
+    <div class="tab-pane fade" id="remiserias" role="tabpanel">
+      {% include "admin_super/tablas/remiserias.html" %}
+    </div>
+    <div class="tab-pane fade" id="localidades" role="tabpanel">
+      {% include "admin_super/tablas/localidades.html" %}
+    </div>
+  </div>
+</div>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const tabButtons = document.querySelectorAll('#adminTabs button');
+
+    // Restaurar pestaña activa desde localStorage
+    const activeTabId = localStorage.getItem('superadminTab');
+    if (activeTabId) {
+      const tabTrigger = document.querySelector(`#adminTabs button[data-bs-target="${activeTabId}"]`);
+      if (tabTrigger) {
+        const tab = new bootstrap.Tab(tabTrigger);
+        tab.show();
+      }
+    } else {
+      // Activar la primera por defecto
+      new bootstrap.Tab(tabButtons[0]).show();
+    }
+
+    // Guardar la pestaña seleccionada
+    tabButtons.forEach(button => {
+      button.addEventListener('shown.bs.tab', function (event) {
+        localStorage.setItem('superadminTab', event.target.getAttribute('data-bs-target'));
+      });
+    });
+  });
+</script>
+
+{% endblock %}
