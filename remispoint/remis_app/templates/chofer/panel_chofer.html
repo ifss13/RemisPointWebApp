@@ -296,7 +296,17 @@
                     } else if (data.estado === "Finalizado") {
                         document.querySelector("#viaje-encontrado h3").textContent = "Viaje Finalizado";
                         document.getElementById('info-viaje').textContent = "";
+                    }else if (data.estado === "Cancelado por el cliente") {
+                        alert("El cliente canceló el viaje.");
+                        window.location.href = "chofer/panel_chofer.html";
+                    }else if (data.estado === "Cancelado por la base") {
+                        alert("La base canceló el viaje.");
+                        window.location.href = "chofer/panel_chofer.html";
+                    }else if (data.estado === "Cancelado por el chofer") {
+                        alert("Has cancelado el viaje.");
+                        window.location.href = "chofer/panel_chofer.html";
                     }
+
 
                     // Según el estado, mostrar/ocultar botones y mapa:
                     if (data.estado === "Asignado") {
@@ -579,6 +589,19 @@
                 btnFinalizar.onclick = function () {
                     finalizarViaje(id_viaje, map);
                 };
+                let btnCancelarChofer = document.getElementById('cancelar-viaje-chofer');
+                if (!btnCancelarChofer) {
+                    btnCancelarChofer = document.createElement('button');
+                    btnCancelarChofer.id = 'cancelar-viaje-chofer';
+                    btnCancelarChofer.textContent = "Cancelar este viaje";
+                    btnCancelarChofer.className = "btn btn-warning mt-3 ms-2";
+                    document.getElementById('mapa-container').parentNode.appendChild(btnCancelarChofer);
+                }
+                btnCancelarChofer.style.display = 'block';
+                btnCancelarChofer.onclick = function () {
+                    cancelarViajeChofer(viajeActual);
+                };
+
     
             } else {
                 console.error("No se pudo generar la ruta con OpenRouteService.");
@@ -801,6 +824,33 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Iniciar WebSocket apenas carga
     iniciarWebSocket();
+
+
+viajeActual = data.id_viaje;
+
+function cancelarViajeChofer(id_viaje) {
+    if (confirm("¿Estás seguro de que querés cancelar este viaje?")) {
+        fetch(`/cancelar_viaje_chofer/${id_viaje}/`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}"
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert("Cancelaste el viaje.");
+                window.location.href = "/chofer";
+            } else {
+                alert("Error al cancelar el viaje: " + data.error);
+            }
+        })
+        .catch(error => console.error("Error al cancelar viaje:", error));
+    }
+}
+
+
 </script>
 
 

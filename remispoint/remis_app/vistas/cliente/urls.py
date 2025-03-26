@@ -12,6 +12,8 @@ urlpatterns = [
     path('obtener_precio/', obtener_precio, name='obtener_precio'),  
     path('obtener_id_precio/', obtener_id_precio, name='obtener_id_precio'),  
     path('verificar_estado_viaje/<int:id_viaje>/', verificar_estado_viaje, name='verificar_estado_viaje'),  
-    path('pagos/<int:id_viaje>/', pagos, name='pagos'),  
+    path('pagos/<int:id_viaje>/', pagos, name='pagos'),
+    path('cancelar_viaje_cliente/<int:id_viaje>/', cancelar_viaje_cliente, name='cancelar_viaje_cliente'),
+  
 ]
 

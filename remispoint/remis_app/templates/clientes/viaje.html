@@ -61,6 +61,10 @@
                 <p><strong>Año del Modelo:</strong> {{ auto.anio_modelo }}</p>
             </div>
         </div>
+        <div class="text-center mt-4">
+            <button id="cancelarViajeBtn" class="btn btn-danger">Cancelar viaje</button>
+        </div>
+        
 
     {% endif %}
 </div>
@@ -222,14 +226,40 @@
                         } else {
                             console.error("Error: idViaje no definido.");
                         }
+                    }  else if (["Cancelado por la base", "Cancelado por el chofer", "Cancelado por el cliente"].includes(data.estado)) {
+                        alert(`Tu viaje fue cancelado. Motivo: ${data.estado}`);
+                        window.location.href = "/";
                     }
+                    
                 })
                 .catch(error => console.error("Error al verificar el estado del viaje:", error));
         }
 
         setInterval(verificarEstado, 5000);
     });
+    
+    const idViaje = "{{ viaje.id_viaje }}";
 
+    document.getElementById("cancelarViajeBtn")?.addEventListener("click", function () {
+    if (confirm("¿Estás seguro de que querés cancelar este viaje?")) {
+        fetch(`/cancelar_viaje_cliente/${idViaje}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert("Cancelaste el viaje.");
+                window.location.href = "/";
+            } else {
+                alert("No se pudo cancelar el viaje: " + data.error);
+            }
+        });
+    }
+});
 
 </script>
 {% endblock %}

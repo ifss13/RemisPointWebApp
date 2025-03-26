@@ -18,6 +18,9 @@ def verificar_estado_pedido(request, pedido_id):
         
         elif pedido.estado_pedido == "Cancelado por la Base":
             return JsonResponse({'estado_pedido': 'Cancelado por la Base'})
+        
+        # ✅ Por si hay otros estados no considerados
+        return JsonResponse({'estado_pedido': pedido.estado_pedido})
 
     except PedidosCliente.DoesNotExist:
         return JsonResponse({'estado_pedido': 'Error', 'message': 'Pedido no encontrado'}, status=404)

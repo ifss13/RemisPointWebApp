@@ -3,6 +3,29 @@
 {% block title %}Esperando Chofer - RemisPoint{% endblock %}
 
 {% block content %}
+<style>
+    .esperando-contenedor {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-top: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    #lottie-animacion {
+        width: 90vw;
+        max-width: 400px;
+        height: auto;
+        aspect-ratio: 1;
+    }
+
+    @media (min-width: 768px) {
+        #lottie-animacion {
+            width: 300px;
+        }
+    }
+</style>
+
 <div class="container">
     <h2 hidden>Estado del Pedido</h2>
     {% if error %}
@@ -35,16 +58,19 @@
                     </div>
                 </div>
             {% else %}
-            <div style="display: flex; flex-direction: column; align-items: center;">
+            <div class="esperando-contenedor text-center">
                 <h2>Esperando asignación de chofer...</h2>
-                <div id="lottie-animacion" style="width: 100vw; height: 100vw; max-width: 500px;"></div>
+                <div class="text-center mt-4">
+                    <h5 class="mb-3">⏳ Tiempo de espera aproximado: 3 min</h5>
+                    <div id="contador" class="display-4 fw-bold text-primary"></div>
+                </div>
+                <div id="lottie-animacion"></div>
+                <button id="cancelar-pedido" class="btn btn-danger mt-3" data-pedido-id="{{ pedido.id_pedido }}">
+                    Cancelar Pedido
+                </button>
             </div>
-            
+                       
             {% endif %}
-        </div>
-        <div style="display: flex; flex-direction: column; align-items: center;">
-        <button id="cancelar-pedido" class="btn btn-danger" data-pedido-id="{{ pedido.id_pedido }}">Cancelar Pedido</button>
-        </div>  
     {% endif %}
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.9.6/lottie.min.js"></script>
@@ -61,11 +87,11 @@
                 }
                 else if (data.estado_pedido === "Cancelado por el Cliente") {
                     alert("Tu pedido ha sido cancelado.");
-                    window.location.href = "/home/";
+                    window.location.href = "/";
                 }
                 else if (data.estado_pedido === "Cancelado por la Base") {
                     alert("Tu pedido ha sido cancelado.");
-                    window.location.href = "/home/";
+                    window.location.href = "/";
                 }
 
             })
@@ -110,6 +136,26 @@
             .catch(error => console.error("Error:", error));
         }
     });
+</script>
+<script>
+    // Duración en segundos (3 minutos)
+    let duracion = 3 * 60;
+    
+    function actualizarContador() {
+      const minutos = Math.floor(duracion / 60);
+      const segundos = duracion % 60;
+      document.getElementById("contador").textContent =
+        `${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
+      
+      if (duracion > 0) {
+        duracion--;
+        setTimeout(actualizarContador, 1000);
+      } else {
+        document.getElementById("contador").textContent = "¡Ya debería estar llegando!";
+      }
+    }
+  
+    actualizarContador();
 </script>
 {% endblock %}
 

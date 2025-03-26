@@ -2,7 +2,6 @@ from django.shortcuts import render
 from remis_app.decorador import chofer_required
 from remis_app.models import Cliente, Chofer, Viaje
 
-from django.shortcuts import render
 from remis_app.decorador import chofer_required
 from remis_app.models import Cliente, Chofer, Viaje
 
@@ -29,7 +28,7 @@ def panel_chofer(request):
             id_cliente = viaje.id_cliente
 
             # Obtener el fcm_token del cliente
-            cliente_viaje = Cliente.objects.filter(id_cliente=id_cliente).first()
+            cliente_viaje = id_cliente  # ya tenés el objeto Cliente
             fcm_token = cliente_viaje.fcm_token if cliente_viaje else None
             print(fcm_token)
 

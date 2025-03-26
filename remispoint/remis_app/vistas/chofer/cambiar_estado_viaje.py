@@ -1,40 +1,30 @@
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
-from remis_app.models import Viaje, Cliente, Chofer
-import json
-from django.utils.timezone import now
-from django.views.decorators.csrf import csrf_exempt
-import requests  # Para enviar la notificación a OneSignal
-
-from django.http import JsonResponse
-from django.contrib.auth.decorators import login_required
 from remis_app.models import Viaje, Cliente, Chofer, PedidosCliente
 import json
 from django.utils.timezone import now
 from django.views.decorators.csrf import csrf_exempt
-import requests  # Para enviar la notificación a OneSignal
+import requests
+import threading
+import time
 
 @csrf_exempt
 @login_required
 def cambiar_estado_viaje(request, id_viaje):
     if request.method == "POST":
         try:
-            # Obtener el viaje por ID
             viaje = Viaje.objects.get(id_viaje=id_viaje)
 
-            # Validar que el usuario autenticado sea el chofer asignado
             cliente = Cliente.objects.get(correo=request.user.email)
             chofer = Chofer.objects.get(id_cliente=cliente)
 
             if viaje.id_chofer != chofer:
                 return JsonResponse({"success": False, "error": "No autorizado"}, status=403)
 
-            # Leer los datos enviados en la petición
             data = json.loads(request.body)
             nuevo_estado = data.get("estado")
             print("Nuevo estado recibido:", nuevo_estado)
 
-            # 🔹 Solo verificar el pedido si el estado actual del viaje es "Asignado"
             if viaje.estado == "Asignado":
                 pedido = PedidosCliente.objects.filter(
                     id_cliente=viaje.id_cliente,
@@ -42,7 +32,7 @@ def cambiar_estado_viaje(request, id_viaje):
                 ).first()
 
                 if not pedido:
-                    print("⚠️ Error: No se encontró un pedido en estado 'Esperando al chofer' para este cliente")
+                    print("⚠️ Error: No se encontró un pedido en estado 'Esperando al chofer'")
                     return JsonResponse({"success": False, "error": "No se encontró un pedido activo para este cliente."}, status=404)
 
                 print(f"✅ Pedido encontrado: {pedido}")
@@ -50,27 +40,25 @@ def cambiar_estado_viaje(request, id_viaje):
                 pedido.save()
                 print("✅ Estado del pedido actualizado a 'Asignado'")
 
-                # Enviar notificación al cliente
                 mensaje = "El chofer está en camino"
-                enviar_notificacion_cliente(viaje.id_cliente.fcm_token, mensaje)
+                notificar_async(viaje.id_cliente.fcm_token, mensaje)
 
-            # Actualizar la hora de inicio cuando el viaje cambia a "En viaje"
             if nuevo_estado == "En viaje":
                 viaje.inicio = now().time()
                 mensaje = "El chofer ha iniciado el viaje"
-                enviar_notificacion_cliente(viaje.id_cliente.fcm_token, mensaje)
+                notificar_async(viaje.id_cliente.fcm_token, mensaje)
 
-            # Actualizar la hora de finalización cuando el viaje cambia a "Finalizado"
             if nuevo_estado == "Finalizado":
                 viaje.fin = now().time()
                 mensaje = "Tu viaje ha sido finalizado. ¡Gracias por usar nuestro servicio!"
-                enviar_notificacion_cliente(viaje.id_cliente.fcm_token, mensaje)
+                notificar_async(viaje.id_cliente.fcm_token, mensaje)
 
-            # Actualizar el estado del viaje
             if nuevo_estado:
+                t0 = time.time()
                 viaje.estado = nuevo_estado
                 viaje.save(update_fields=["estado", "inicio", "fin"])
-                viaje.refresh_from_db()
+                print("⏱ Tiempo de save():", round(time.time() - t0, 3), "s")
+                # viaje.refresh_from_db()  # innecesario
                 print("Estado actualizado en DB:", viaje.estado)
                 return JsonResponse({"success": True, "message": "Estado actualizado correctamente"})
             else:
@@ -79,13 +67,16 @@ def cambiar_estado_viaje(request, id_viaje):
         except Viaje.DoesNotExist:
             return JsonResponse({"success": False, "error": "Viaje no encontrado"}, status=404)
         except PedidosCliente.DoesNotExist:
-            return JsonResponse({"success": False, "error": "No se encontró un pedido en estado 'Esperando al chofer' para este cliente."}, status=404)
+            return JsonResponse({"success": False, "error": "No se encontró un pedido activo para este cliente."}, status=404)
         except Exception as e:
             return JsonResponse({"success": False, "error": str(e)}, status=500)
 
     return JsonResponse({"success": False, "error": "Método no permitido"}, status=405)
 
 
+# ✅ Notificación asincrónica para no bloquear la respuesta
+def notificar_async(player_id, mensaje):
+    threading.Thread(target=enviar_notificacion_cliente, args=(player_id, mensaje)).start()
 
 def enviar_notificacion_cliente(player_id, mensaje):
     url = "https://api.onesignal.com/notifications?c=push"
@@ -101,6 +92,8 @@ def enviar_notificacion_cliente(player_id, mensaje):
         "content-type": "application/json"
     }
 
-    # Enviar la notificación
-    response = requests.post(url, json=payload, headers=headers)
-    return response.json()  # Devolver la respuesta de OneSignal
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        print("🔔 Notificación enviada:", response.status_code)
+    except Exception as e:
+        print("❌ Error enviando notificación:", str(e))
